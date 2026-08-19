@@ -1,29 +1,18 @@
 {
-  "tasks": [
-    {
-      "id": "write-outline",
-      "title": "write outline",
-      "done": true
-    },
-    {
-      "id": "email-sam",
-      "title": "email sam",
-      "done": false
-    },
-    {
-      "id": "buy-tea",
-      "title": "buy tea",
-      "done": false
+  "version": 2,
+  "days": {
+    "2026-08-19": {
+      "tasks": [],
+      "focus": {
+        "todayMinutes": 38,
+        "activeStartedAt": null
+      },
+      "note": "keep it small. one clear thing at a time."
     }
-  ],
-  "focus": {
-    "todayMinutes": 38,
-    "activeStartedAt": null
   },
   "weather": {
     "label": "cloudy, calm",
     "temperature": "68°F",
     "conditionIcon": "☁"
-  },
-  "note": "keep it small. one clear thing at a time."
+  }
 }

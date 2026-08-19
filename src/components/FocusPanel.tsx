@@ -1,12 +1,12 @@
 import React from 'react';
 import {Text} from 'ink';
-import type {KinokoData} from '../state/schema.js';
+import type {DailyRecord} from '../state/schema.js';
 import {getDisplayedFocusMinutes} from '../state/store.js';
 import {Panel} from './Panel.js';
 import {colors} from '../theme/colors.js';
 
 type FocusPanelProps = {
-  data: KinokoData;
+  record: DailyRecord;
   now: Date;
   active: boolean;
 };
@@ -17,9 +17,9 @@ function progressBar(minutes: number): string {
   return `${'█'.repeat(filled)}${'░'.repeat(10 - filled)}`;
 }
 
-export function FocusPanel({data, now, active}: FocusPanelProps) {
-  const minutes = getDisplayedFocusMinutes(data, now);
-  const running = Boolean(data.focus.activeStartedAt);
+export function FocusPanel({record, now, active}: FocusPanelProps) {
+  const minutes = getDisplayedFocusMinutes(record, now);
+  const running = Boolean(record.focus.activeStartedAt);
 
   return (
     <Panel title="focus" active={active}>

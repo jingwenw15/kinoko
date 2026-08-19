@@ -59,6 +59,21 @@ data/kinoko.json
 ```
 
 The file contains tasks, focus totals, mock weather, and the pocket note.
+Tasks, focus, and notes are stored under daily records keyed by `YYYY-MM-DD`, so a new day gets a separate dashboard instead of overwriting yesterday.
+
+## CLI commands
+
+```sh
+npm run build
+node dist/cli.js list
+node dist/cli.js add "review notes"
+node dist/cli.js done 1
+node dist/cli.js edit 1 "review project notes"
+node dist/cli.js delete 1
+node dist/cli.js note "keep it small"
+```
+
+When installed as a package, the same commands are available through `kinoko`.
 
 ## Checks
 
