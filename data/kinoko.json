@@ -13,6 +13,8 @@
   "weather": {
     "label": "cloudy, calm",
     "temperature": "68°F",
-    "conditionIcon": "☁"
+    "conditionIcon": "☁",
+    "source": "mock",
+    "stale": true
   }
 }

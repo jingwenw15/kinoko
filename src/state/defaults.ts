@@ -1,4 +1,4 @@
-import type {DailyRecord, KinokoData, Weather} from './schema.js';
+import type {DailyRecord, KinokoConfig, KinokoData, Weather} from './schema.js';
 
 export const defaultDailyRecord: DailyRecord = {
   tasks: [
@@ -16,11 +16,25 @@ export const defaultDailyRecord: DailyRecord = {
 export const defaultWeather: Weather = {
   label: 'cloudy, calm',
   temperature: '68°F',
-  conditionIcon: '☁'
+  conditionIcon: '☁',
+  source: 'mock',
+  stale: true
 };
 
 export const defaultData: KinokoData = {
   version: 2,
   days: {},
   weather: defaultWeather
+};
+
+export const defaultConfig: KinokoConfig = {
+  version: 1,
+  weather: {
+    provider: 'open-meteo',
+    latitude: null,
+    longitude: null,
+    locationName: '',
+    temperatureUnit: 'fahrenheit',
+    windSpeedUnit: 'mph'
+  }
 };

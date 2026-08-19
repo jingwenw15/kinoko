@@ -24,6 +24,13 @@ import {
 } from './state/store.js';
 import type {KinokoData} from './state/schema.js';
 import {colors} from './theme/colors.js';
+import {hasWeatherLocation, loadConfig, saveConfig, setGeocodedWeatherLocation} from './config.js';
+import {
+  fetchOpenMeteoWeather,
+  geocodeLocation,
+  markWeatherStale,
+  shouldRefreshWeather
+} from './weather/openMeteo.js';
 
 const panels = ['tasks', 'focus', 'weather', 'note'] as const;
 
@@ -37,15 +44,41 @@ export function App({dataPath}: AppProps) {
   const {columns} = useTerminalSize();
   const compact = columns < 84;
   const [data, setData] = useState<KinokoData>(() => loadData(dataPath));
+  const [weatherStatus, setWeatherStatus] = useState<string | null>(null);
   const [activePanel, setActivePanel] = useState(0);
   const [selectedTaskIndex, setSelectedTaskIndex] = useState(0);
-  const [entryMode, setEntryMode] = useState<'add' | 'edit' | null>(null);
+  const [entryMode, setEntryMode] = useState<'add' | 'edit' | 'location' | null>(null);
   const [entryText, setEntryText] = useState('');
   const today = getToday(data, now);
 
   useEffect(() => {
     saveData(data, dataPath);
   }, [data, dataPath]);
+
+  useEffect(() => {
+    const config = loadConfig();
+    if (!hasWeatherLocation(config) || !shouldRefreshWeather(data.weather)) {
+      return;
+    }
+
+    let cancelled = false;
+    setWeatherStatus('refreshing weather');
+    fetchOpenMeteoWeather(config)
+      .then(weather => {
+        if (cancelled) return;
+        setData(current => ({...current, weather}));
+        setWeatherStatus(null);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setData(current => ({...current, weather: markWeatherStale(current.weather)}));
+        setWeatherStatus('weather offline · using cached data');
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useInput((input, key) => {
     if (entryMode) {
@@ -58,6 +91,28 @@ export function App({dataPath}: AppProps) {
       if (key.return) {
         const mode = entryMode;
         const text = entryText;
+        if (mode === 'location') {
+          setEntryMode(null);
+          setEntryText('');
+          setWeatherStatus(`finding ${text}`);
+          geocodeLocation(text)
+            .then(location => {
+              const config = setGeocodedWeatherLocation(loadConfig(), location);
+              saveConfig(config);
+              setWeatherStatus(`refreshing ${location.name}`);
+              return fetchOpenMeteoWeather(config);
+            })
+            .then(weather => {
+              setData(current => ({...current, weather}));
+              setWeatherStatus(null);
+            })
+            .catch(error => {
+              setData(current => ({...current, weather: markWeatherStale(current.weather)}));
+              setWeatherStatus(error instanceof Error ? error.message : 'location setup failed');
+            });
+          return;
+        }
+
         setData(current =>
           updateToday(current, record => {
             if (mode === 'add') {
@@ -96,6 +151,13 @@ export function App({dataPath}: AppProps) {
 
     if (input === '\u001b[Z') {
       setActivePanel(index => (index - 1 + panels.length) % panels.length);
+      return;
+    }
+
+    if (input === 'l') {
+      setActivePanel(panels.indexOf('weather'));
+      setEntryMode('location');
+      setEntryText('');
       return;
     }
 
@@ -163,13 +225,13 @@ export function App({dataPath}: AppProps) {
             active={panels[activePanel] === 'tasks'}
           />
           <FocusPanel record={today} now={now} active={panels[activePanel] === 'focus'} />
-          <WeatherPanel data={data} active={panels[activePanel] === 'weather'} />
+          <WeatherPanel data={data} active={panels[activePanel] === 'weather'} status={weatherStatus} />
         </Layout>
         <NotePanel record={today} active={panels[activePanel] === 'note'} />
         {entryMode && (
           <Box>
             <Text color={colors.amber}>
-              {entryMode === 'add' ? 'new task' : 'edit task'}: {entryText}
+              {formatEntryPrompt(entryMode)}: {entryText}
             </Text>
           </Box>
         )}
@@ -178,4 +240,10 @@ export function App({dataPath}: AppProps) {
       <Text color={colors.muted}>data: {dataPath ?? 'data/kinoko.json'}</Text>
     </Box>
   );
+}
+
+function formatEntryPrompt(entryMode: 'add' | 'edit' | 'location'): string {
+  if (entryMode === 'add') return 'new task';
+  if (entryMode === 'edit') return 'edit task';
+  return 'location name';
 }
