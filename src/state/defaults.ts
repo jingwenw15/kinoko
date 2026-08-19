@@ -7,8 +7,13 @@ export const defaultDailyRecord: DailyRecord = {
     {id: 'buy-tea', title: 'buy tea', done: false}
   ],
   focus: {
-    todayMinutes: 38,
-    activeStartedAt: null
+    todayMinutes: 0,
+    status: 'idle',
+    activeStartedAt: null,
+    sessionStartedAt: null,
+    targetMinutes: 25,
+    pausedMode: null,
+    sessions: []
   },
   note: 'keep it small. one clear thing at a time.'
 };
@@ -36,5 +41,9 @@ export const defaultConfig: KinokoConfig = {
     locationName: '',
     temperatureUnit: 'fahrenheit',
     windSpeedUnit: 'mph'
+  },
+  focus: {
+    focusMinutes: 25,
+    breakMinutes: 5
   }
 };

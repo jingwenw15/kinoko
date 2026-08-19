@@ -7,12 +7,15 @@ import {
   deleteTask,
   editTask,
   getDisplayedFocusMinutes,
+  getFocusRemainingSeconds,
   getToday,
   loadData,
   pauseFocus,
   resetCurrentFocus,
+  resumeFocus,
   saveData,
   setNote,
+  startBreak,
   startFocus,
   toggleTask,
   updateToday
@@ -61,6 +64,8 @@ describe('store', () => {
     expect(data.version).toBe(2);
     expect(today.tasks[0]?.id).toBe('legacy-task');
     expect(today.focus.todayMinutes).toBe(12);
+    expect(today.focus.status).toBe('idle');
+    expect(today.focus.sessions).toEqual([]);
     expect(today.note).toBe('old note');
   });
 
@@ -85,20 +90,50 @@ describe('store', () => {
     expect(deleted.tasks.some(task => task.id === 'review-notes')).toBe(false);
   });
 
-  it('starts, pauses, and resets focus', () => {
+  it('starts, pauses, resumes, and resets focus', () => {
     const start = new Date('2026-08-19T19:00:00.000Z');
     const pause = new Date('2026-08-19T19:12:30.000Z');
     const running = startFocus(defaultDailyRecord, start);
 
+    expect(running.focus.status).toBe('focus');
     expect(running.focus.activeStartedAt).toBe(start.toISOString());
-    expect(getDisplayedFocusMinutes(running, pause)).toBe(50);
+    expect(getDisplayedFocusMinutes(running, pause)).toBe(12);
+    expect(getFocusRemainingSeconds(running, pause)).toBe(750);
 
     const paused = pauseFocus(running, pause);
+    expect(paused.focus.status).toBe('paused');
     expect(paused.focus.activeStartedAt).toBeNull();
-    expect(paused.focus.todayMinutes).toBe(50);
+    expect(paused.focus.todayMinutes).toBe(12);
+    expect(paused.focus.sessions).toEqual([
+      {
+        type: 'focus',
+        startedAt: start.toISOString(),
+        endedAt: pause.toISOString(),
+        minutes: 12
+      }
+    ]);
 
-    const reset = resetCurrentFocus(running);
+    const resumed = resumeFocus(paused, new Date('2026-08-19T19:20:00.000Z'));
+    expect(resumed.focus.status).toBe('focus');
+
+    const reset = resetCurrentFocus(paused);
+    expect(reset.focus.status).toBe('idle');
     expect(reset.focus.activeStartedAt).toBeNull();
-    expect(reset.focus.todayMinutes).toBe(38);
+    expect(reset.focus.todayMinutes).toBe(12);
+    expect(reset.focus.sessions).toHaveLength(1);
+  });
+
+  it('tracks break sessions without adding focus minutes', () => {
+    const start = new Date('2026-08-19T19:00:00.000Z');
+    const pause = new Date('2026-08-19T19:04:10.000Z');
+    const running = startBreak(defaultDailyRecord, start);
+    const paused = pauseFocus(running, pause);
+
+    expect(running.focus.status).toBe('break');
+    expect(paused.focus.todayMinutes).toBe(0);
+    expect(paused.focus.sessions[0]).toMatchObject({
+      type: 'break',
+      minutes: 4
+    });
   });
 });

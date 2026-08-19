@@ -2,19 +2,46 @@
   "version": 2,
   "days": {
     "2026-08-19": {
-      "tasks": [],
+      "tasks": [
+        {
+          "id": "write-outline",
+          "title": "write outline",
+          "done": true
+        },
+        {
+          "id": "email-sam",
+          "title": "email sam",
+          "done": false
+        },
+        {
+          "id": "buy-tea",
+          "title": "buy tea",
+          "done": false
+        }
+      ],
       "focus": {
-        "todayMinutes": 38,
-        "activeStartedAt": null
+        "todayMinutes": 0,
+        "status": "focus",
+        "activeStartedAt": "2026-08-19T23:18:56.956Z",
+        "sessionStartedAt": "2026-08-19T23:18:56.956Z",
+        "targetMinutes": 30,
+        "pausedMode": null,
+        "sessions": []
       },
       "note": "keep it small. one clear thing at a time."
     }
   },
   "weather": {
-    "label": "cloudy, calm",
-    "temperature": "68°F",
-    "conditionIcon": "☁",
-    "source": "mock",
-    "stale": true
+    "conditionIcon": "☀",
+    "label": "clear sky",
+    "temperature": "83°F",
+    "apparentTemperature": "82°F",
+    "windSpeed": "6 mph",
+    "highLow": "H 83°F · L 56°F",
+    "source": "open-meteo",
+    "locationName": "Redmond, Washington, United States",
+    "updatedAt": "2026-08-19T23:19:09.457Z",
+    "stale": false,
+    "attribution": "Weather data by Open-Meteo.com"
   }
 }

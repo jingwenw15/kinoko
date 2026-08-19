@@ -7,5 +7,9 @@
     "locationName": "Redmond, Washington, United States",
     "temperatureUnit": "fahrenheit",
     "windSpeedUnit": "mph"
+  },
+  "focus": {
+    "focusMinutes": 30,
+    "breakMinutes": 5
   }
 }

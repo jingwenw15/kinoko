@@ -6,7 +6,7 @@ import {colors} from '../theme/colors.js';
 export function Footer() {
   return (
     <Box justifyContent="space-between">
-      <Text color={colors.muted}>tab switch · ↑↓ move · enter done · a/e/d tasks · l location · space focus · q quit</Text>
+      <Text color={colors.muted}>tab switch · a/e/d tasks · l location · f/g durations · space focus · b break · q quit</Text>
       <Text color={colors.cap}>{mascot}</Text>
     </Box>
   );

@@ -7,9 +7,16 @@ import {
   deleteTask,
   editTask,
   getToday,
+  getDisplayedFocusMinutes,
+  getFocusRemainingSeconds,
   loadData,
   saveData,
   setNote,
+  pauseFocus,
+  resetCurrentFocus,
+  resumeFocus,
+  startBreak,
+  startFocus,
   toggleTask,
   todayKey,
   updateToday
@@ -18,6 +25,8 @@ import {
   hasWeatherLocation,
   loadConfig,
   saveConfig,
+  setBreakMinutes,
+  setFocusMinutes,
   setGeocodedWeatherLocation,
   setWeatherLocation
 } from './config.js';
@@ -60,6 +69,12 @@ async function main(): Promise<void> {
       break;
     case 'weather':
       await runWeatherCommand(args);
+      break;
+    case 'focus':
+      runFocusCommand(args);
+      break;
+    case 'config':
+      runConfigCommand(args);
       break;
     case 'help':
     case '--help':
@@ -156,6 +171,80 @@ async function runWeatherCommand(args: string[]): Promise<void> {
   }
 }
 
+function runFocusCommand(args: string[]): void {
+  const [subcommand] = args;
+  const config = loadConfig();
+
+  switch (subcommand) {
+    case 'start':
+      runMutation(record => startFocus(record, new Date(), config.focus.focusMinutes), 'started focus session');
+      break;
+    case 'break':
+      runMutation(record => startBreak(record, new Date(), config.focus.breakMinutes), 'started break');
+      break;
+    case 'pause':
+      runMutation(record => pauseFocus(record), 'paused current focus segment');
+      break;
+    case 'resume':
+      runMutation(record => resumeFocus(record), 'resumed focus');
+      break;
+    case 'reset':
+      runMutation(record => resetCurrentFocus(record, config.focus.focusMinutes), 'reset current focus segment');
+      break;
+    case 'status':
+    case undefined:
+      printFocusStatus();
+      break;
+    default:
+      console.log(`focus commands:
+  kinoko focus start
+  kinoko focus break
+  kinoko focus pause
+  kinoko focus resume
+  kinoko focus reset
+  kinoko focus status`);
+  }
+}
+
+function runConfigCommand(args: string[]): void {
+  const [subcommand, value] = args;
+  const config = loadConfig();
+
+  switch (subcommand) {
+    case 'focus-minutes': {
+      const minutes = parseDuration(value, 'usage: kinoko config focus-minutes <1-180>');
+      saveConfig(setFocusMinutes(config, minutes));
+      console.log(`focus minutes set to ${minutes}`);
+      break;
+    }
+    case 'break-minutes': {
+      const minutes = parseDuration(value, 'usage: kinoko config break-minutes <1-180>');
+      saveConfig(setBreakMinutes(config, minutes));
+      console.log(`break minutes set to ${minutes}`);
+      break;
+    }
+    case 'show':
+    case undefined:
+      console.log(JSON.stringify(config.focus, null, 2));
+      break;
+    default:
+      console.log(`config commands:
+  kinoko config show
+  kinoko config focus-minutes <1-180>
+  kinoko config break-minutes <1-180>`);
+  }
+}
+
+function printFocusStatus(): void {
+  const config = loadConfig();
+  const today = getToday(loadData());
+  const remaining = today.focus.status === 'idle' ? config.focus.focusMinutes * 60 : getFocusRemainingSeconds(today);
+  console.log(`status: ${today.focus.status}`);
+  console.log(`today: ${getDisplayedFocusMinutes(today)} min`);
+  console.log(`remaining: ${formatDuration(remaining)}`);
+  console.log(`segments: ${today.focus.sessions.length}`);
+}
+
 function printHelp(): void {
   console.log(`kinoko
 
@@ -171,6 +260,14 @@ usage:
   kinoko weather set-location <name> <lat> <lon>
   kinoko weather refresh          fetch Open-Meteo weather
   kinoko weather config           show weather config
+  kinoko focus start              start a focus session
+  kinoko focus break              start a break
+  kinoko focus pause              pause current segment
+  kinoko focus resume             resume paused segment
+  kinoko focus reset              reset current segment
+  kinoko focus status             show focus status
+  kinoko config focus-minutes <n> set default focus length
+  kinoko config break-minutes <n> set default break length
 `);
 }
 
@@ -179,4 +276,21 @@ function requireArg(value: string | undefined, message: string): asserts value i
     console.error(message);
     process.exit(1);
   }
+}
+
+function formatDuration(seconds: number): string {
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
+}
+
+function parseDuration(value: string | undefined, message: string): number {
+  requireArg(value, message);
+  const minutes = Number.parseInt(value, 10);
+  if (!Number.isInteger(minutes) || minutes < 1 || minutes > 180) {
+    console.error(message);
+    process.exit(1);
+  }
+
+  return minutes;
 }

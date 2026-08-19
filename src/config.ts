@@ -16,7 +16,7 @@ export function loadConfig(path = configPath): KinokoConfig {
     return structuredClone(defaultConfig);
   }
 
-  return KinokoConfigSchema.parse(JSON.parse(readFileSync(path, 'utf8')));
+  return parseConfig(JSON.parse(readFileSync(path, 'utf8')));
 }
 
 export function saveConfig(config: KinokoConfig, path = configPath): void {
@@ -51,4 +51,43 @@ export function setGeocodedWeatherLocation(
 
 export function hasWeatherLocation(config: KinokoConfig): boolean {
   return config.weather.latitude !== null && config.weather.longitude !== null;
+}
+
+export function setFocusDurations(
+  config: KinokoConfig,
+  focusMinutes: number,
+  breakMinutes: number
+): KinokoConfig {
+  return {
+    ...config,
+    focus: {
+      focusMinutes,
+      breakMinutes
+    }
+  };
+}
+
+export function setFocusMinutes(config: KinokoConfig, focusMinutes: number): KinokoConfig {
+  return setFocusDurations(config, focusMinutes, config.focus.breakMinutes);
+}
+
+export function setBreakMinutes(config: KinokoConfig, breakMinutes: number): KinokoConfig {
+  return setFocusDurations(config, config.focus.focusMinutes, breakMinutes);
+}
+
+function parseConfig(raw: unknown): KinokoConfig {
+  const parsed = KinokoConfigSchema.safeParse(raw);
+  if (parsed.success) {
+    return parsed.data;
+  }
+
+  const legacy = KinokoConfigSchema.omit({focus: true}).safeParse(raw);
+  if (legacy.success) {
+    return {
+      ...legacy.data,
+      focus: defaultConfig.focus
+    };
+  }
+
+  return KinokoConfigSchema.parse(raw);
 }

@@ -6,12 +6,26 @@ export const TaskSchema = z.object({
   done: z.boolean()
 });
 
+export const FocusSessionSchema = z.object({
+  type: z.enum(['focus', 'break']),
+  startedAt: z.string().datetime(),
+  endedAt: z.string().datetime(),
+  minutes: z.number().nonnegative()
+});
+
+export const FocusStateSchema = z.object({
+  todayMinutes: z.number().nonnegative(),
+  status: z.enum(['idle', 'focus', 'break', 'paused']),
+  activeStartedAt: z.string().datetime().nullable(),
+  sessionStartedAt: z.string().datetime().nullable(),
+  targetMinutes: z.number().positive(),
+  pausedMode: z.enum(['focus', 'break']).nullable(),
+  sessions: z.array(FocusSessionSchema)
+});
+
 export const DailyRecordSchema = z.object({
   tasks: z.array(TaskSchema),
-  focus: z.object({
-    todayMinutes: z.number().nonnegative(),
-    activeStartedAt: z.string().datetime().nullable()
-  }),
+  focus: FocusStateSchema,
   note: z.string()
 });
 
@@ -38,6 +52,10 @@ export const KinokoConfigSchema = z.object({
     locationName: z.string(),
     temperatureUnit: z.enum(['fahrenheit', 'celsius']),
     windSpeedUnit: z.enum(['mph', 'kmh'])
+  }),
+  focus: z.object({
+    focusMinutes: z.number().int().positive(),
+    breakMinutes: z.number().int().positive()
   })
 });
 
@@ -48,6 +66,8 @@ export const KinokoDataSchema = z.object({
 });
 
 export type Task = z.infer<typeof TaskSchema>;
+export type FocusSession = z.infer<typeof FocusSessionSchema>;
+export type FocusState = z.infer<typeof FocusStateSchema>;
 export type DailyRecord = z.infer<typeof DailyRecordSchema>;
 export type Weather = z.infer<typeof WeatherSchema>;
 export type KinokoConfig = z.infer<typeof KinokoConfigSchema>;

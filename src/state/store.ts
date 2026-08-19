@@ -1,11 +1,14 @@
 import {existsSync, mkdirSync, readFileSync, writeFileSync} from 'node:fs';
 import {dirname, resolve} from 'node:path';
 import {format} from 'date-fns';
+import {z} from 'zod';
 import {
   DailyRecordSchema,
+  FocusStateSchema,
   KinokoDataSchema,
   WeatherSchema,
   type DailyRecord,
+  type FocusState,
   type KinokoData
 } from './schema.js';
 import {defaultDailyRecord, defaultData, defaultWeather} from './defaults.js';
@@ -114,49 +117,61 @@ export function toggleTask(record: DailyRecord, taskIdOrIndex: string): DailyRec
   };
 }
 
-export function startFocus(record: DailyRecord, now = new Date()): DailyRecord {
-  if (record.focus.activeStartedAt) {
-    return record;
-  }
-
-  return {
-    ...record,
-    focus: {
-      ...record.focus,
-      activeStartedAt: now.toISOString()
-    }
-  };
-}
-
 export function pauseFocus(record: DailyRecord, now = new Date()): DailyRecord {
-  if (!record.focus.activeStartedAt) {
+  if (
+    !record.focus.activeStartedAt ||
+    !record.focus.sessionStartedAt ||
+    !['focus', 'break'].includes(record.focus.status)
+  ) {
     return record;
   }
 
   const startedAt = new Date(record.focus.activeStartedAt);
   const elapsedMinutes = Math.max(0, Math.floor((now.getTime() - startedAt.getTime()) / 60000));
+  const sessionType = record.focus.status as 'focus' | 'break';
 
-  return {
-    ...record,
-    focus: {
-      todayMinutes: record.focus.todayMinutes + elapsedMinutes,
-      activeStartedAt: null
-    }
-  };
-}
-
-export function resetCurrentFocus(record: DailyRecord): DailyRecord {
   return {
     ...record,
     focus: {
       ...record.focus,
-      activeStartedAt: null
+      todayMinutes:
+        sessionType === 'focus' ? record.focus.todayMinutes + elapsedMinutes : record.focus.todayMinutes,
+      status: 'paused',
+      activeStartedAt: null,
+      sessionStartedAt: null,
+      pausedMode: sessionType,
+      sessions:
+        elapsedMinutes > 0
+          ? [
+              ...record.focus.sessions,
+              {
+                type: sessionType,
+                startedAt: record.focus.sessionStartedAt,
+                endedAt: now.toISOString(),
+                minutes: elapsedMinutes
+              }
+            ]
+          : record.focus.sessions
+    }
+  };
+}
+
+export function resetCurrentFocus(record: DailyRecord, targetMinutes = 25): DailyRecord {
+  return {
+    ...record,
+    focus: {
+      ...record.focus,
+      status: 'idle',
+      activeStartedAt: null,
+      sessionStartedAt: null,
+      pausedMode: null,
+      targetMinutes
     }
   };
 }
 
 export function getDisplayedFocusMinutes(record: DailyRecord, now = new Date()): number {
-  if (!record.focus.activeStartedAt) {
+  if (record.focus.status !== 'focus' || !record.focus.activeStartedAt) {
     return record.focus.todayMinutes;
   }
 
@@ -165,10 +180,56 @@ export function getDisplayedFocusMinutes(record: DailyRecord, now = new Date()):
   return record.focus.todayMinutes + elapsedMinutes;
 }
 
+export function startFocus(record: DailyRecord, now = new Date(), targetMinutes = 25): DailyRecord {
+  return startFocusMode(record, 'focus', now, targetMinutes);
+}
+
+export function startBreak(record: DailyRecord, now = new Date(), targetMinutes = 5): DailyRecord {
+  return startFocusMode(record, 'break', now, targetMinutes);
+}
+
+export function resumeFocus(record: DailyRecord, now = new Date()): DailyRecord {
+  if (record.focus.status !== 'paused') {
+    return record;
+  }
+
+  const mode = record.focus.pausedMode ?? 'focus';
+  return startFocusMode(record, mode, now, record.focus.targetMinutes);
+}
+
+export function getFocusElapsedSeconds(record: DailyRecord, now = new Date()): number {
+  if (!record.focus.activeStartedAt || !['focus', 'break'].includes(record.focus.status)) {
+    return 0;
+  }
+
+  return Math.max(0, Math.floor((now.getTime() - new Date(record.focus.activeStartedAt).getTime()) / 1000));
+}
+
+export function getFocusRemainingSeconds(record: DailyRecord, now = new Date()): number {
+  const targetSeconds = record.focus.targetMinutes * 60;
+  return Math.max(0, targetSeconds - getFocusElapsedSeconds(record, now));
+}
+
 function parseData(raw: unknown, now: Date): KinokoData {
   const versioned = KinokoDataSchema.safeParse(raw);
   if (versioned.success) {
     return versioned.data;
+  }
+
+  const v2Legacy = legacyV2DataSchema.safeParse(raw);
+  if (v2Legacy.success) {
+    return {
+      ...v2Legacy.data,
+      days: Object.fromEntries(
+        Object.entries(v2Legacy.data.days).map(([key, record]) => [
+          key,
+          {
+            ...record,
+            focus: migrateFocusState(record.focus)
+          }
+        ])
+      )
+    };
   }
 
   const legacy = legacyFlatDataSchema.safeParse(raw);
@@ -181,11 +242,52 @@ function parseData(raw: unknown, now: Date): KinokoData {
     days: {
       [todayKey(now)]: {
         tasks: legacy.data.tasks,
-        focus: legacy.data.focus,
+        focus: migrateFocusState(legacy.data.focus),
         note: legacy.data.note
       }
     },
     weather: legacy.data.weather ?? defaultWeather
+  };
+}
+
+function startFocusMode(
+  record: DailyRecord,
+  mode: 'focus' | 'break',
+  now: Date,
+  targetMinutes: number
+): DailyRecord {
+  if (record.focus.status === 'focus' || record.focus.status === 'break') {
+    return record;
+  }
+
+  const timestamp = now.toISOString();
+  return {
+    ...record,
+    focus: {
+      ...record.focus,
+      status: mode,
+      activeStartedAt: timestamp,
+      sessionStartedAt: timestamp,
+      targetMinutes,
+      pausedMode: null
+    }
+  };
+}
+
+function migrateFocusState(focus: LegacyFocusState | FocusState): FocusState {
+  const parsed = FocusStateSchema.safeParse(focus);
+  if (parsed.success) {
+    return parsed.data;
+  }
+
+  return {
+    todayMinutes: focus.todayMinutes,
+    status: focus.activeStartedAt ? 'focus' : 'idle',
+    activeStartedAt: focus.activeStartedAt,
+    sessionStartedAt: focus.activeStartedAt,
+    targetMinutes: 25,
+    pausedMode: null,
+    sessions: []
   };
 }
 
@@ -223,6 +325,24 @@ function resolveTaskId(record: DailyRecord, taskIdOrIndex: string): string {
   return taskIdOrIndex;
 }
 
+const legacyFocusStateSchema = FocusStateSchema.or(
+  z.object({
+    todayMinutes: z.number().nonnegative(),
+    activeStartedAt: z.string().datetime().nullable()
+  })
+);
+
 const legacyFlatDataSchema = DailyRecordSchema.extend({
+  focus: legacyFocusStateSchema,
   weather: WeatherSchema
 });
+
+const legacyDailyRecordSchema = DailyRecordSchema.extend({
+  focus: legacyFocusStateSchema
+});
+
+const legacyV2DataSchema = KinokoDataSchema.extend({
+  days: z.record(legacyDailyRecordSchema)
+});
+
+type LegacyFocusState = z.infer<typeof legacyFocusStateSchema>;

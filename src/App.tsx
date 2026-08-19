@@ -17,6 +17,8 @@ import {
   loadData,
   pauseFocus,
   resetCurrentFocus,
+  resumeFocus,
+  startBreak,
   saveData,
   startFocus,
   toggleTask,
@@ -24,7 +26,14 @@ import {
 } from './state/store.js';
 import type {KinokoData} from './state/schema.js';
 import {colors} from './theme/colors.js';
-import {hasWeatherLocation, loadConfig, saveConfig, setGeocodedWeatherLocation} from './config.js';
+import {
+  hasWeatherLocation,
+  loadConfig,
+  saveConfig,
+  setBreakMinutes,
+  setFocusMinutes,
+  setGeocodedWeatherLocation
+} from './config.js';
 import {
   fetchOpenMeteoWeather,
   geocodeLocation,
@@ -47,8 +56,9 @@ export function App({dataPath}: AppProps) {
   const [weatherStatus, setWeatherStatus] = useState<string | null>(null);
   const [activePanel, setActivePanel] = useState(0);
   const [selectedTaskIndex, setSelectedTaskIndex] = useState(0);
-  const [entryMode, setEntryMode] = useState<'add' | 'edit' | 'location' | null>(null);
+  const [entryMode, setEntryMode] = useState<'add' | 'edit' | 'location' | 'focusMinutes' | 'breakMinutes' | null>(null);
   const [entryText, setEntryText] = useState('');
+  const [focusConfigStatus, setFocusConfigStatus] = useState<string | null>(null);
   const today = getToday(data, now);
 
   useEffect(() => {
@@ -113,6 +123,41 @@ export function App({dataPath}: AppProps) {
           return;
         }
 
+        if (mode === 'focusMinutes' || mode === 'breakMinutes') {
+          const minutes = Number.parseInt(text, 10);
+          if (!Number.isInteger(minutes) || minutes < 1 || minutes > 180) {
+            setFocusConfigStatus('duration must be 1-180 minutes');
+          } else {
+            const config = loadConfig();
+            saveConfig(
+              mode === 'focusMinutes'
+                ? setFocusMinutes(config, minutes)
+                : setBreakMinutes(config, minutes)
+            );
+            setFocusConfigStatus(
+              mode === 'focusMinutes' ? `focus set to ${minutes} min` : `break set to ${minutes} min`
+            );
+            setData(current =>
+              updateToday(current, record => {
+                if (record.focus.status !== 'idle') {
+                  return record;
+                }
+
+                return {
+                  ...record,
+                  focus: {
+                    ...record.focus,
+                    targetMinutes: mode === 'focusMinutes' ? minutes : record.focus.targetMinutes
+                  }
+                };
+              })
+            );
+          }
+          setEntryMode(null);
+          setEntryText('');
+          return;
+        }
+
         setData(current =>
           updateToday(current, record => {
             if (mode === 'add') {
@@ -161,6 +206,20 @@ export function App({dataPath}: AppProps) {
       return;
     }
 
+    if (input === 'f') {
+      setActivePanel(panels.indexOf('focus'));
+      setEntryMode('focusMinutes');
+      setEntryText(String(loadConfig().focus.focusMinutes));
+      return;
+    }
+
+    if (input === 'g') {
+      setActivePanel(panels.indexOf('focus'));
+      setEntryMode('breakMinutes');
+      setEntryText(String(loadConfig().focus.breakMinutes));
+      return;
+    }
+
     if (panels[activePanel] === 'tasks') {
       if (key.upArrow) {
         setSelectedTaskIndex(index => Math.max(0, index - 1));
@@ -202,15 +261,32 @@ export function App({dataPath}: AppProps) {
 
     if (input === ' ') {
       setData(current =>
-        updateToday(current, record =>
-          record.focus.activeStartedAt ? pauseFocus(record, new Date()) : startFocus(record, new Date())
-        )
+        updateToday(current, record => {
+          if (record.focus.status === 'focus' || record.focus.status === 'break') {
+            return pauseFocus(record, new Date());
+          }
+
+          if (record.focus.status === 'paused') {
+            return resumeFocus(record, new Date());
+          }
+
+          return startFocus(record, new Date(), loadConfig().focus.focusMinutes);
+        })
+      );
+      return;
+    }
+
+    if (input === 'b') {
+      setData(current =>
+        updateToday(current, record => startBreak(record, new Date(), loadConfig().focus.breakMinutes))
       );
       return;
     }
 
     if (input === 'r') {
-      setData(current => updateToday(current, record => resetCurrentFocus(record)));
+      setData(current =>
+        updateToday(current, record => resetCurrentFocus(record, loadConfig().focus.focusMinutes))
+      );
     }
   });
 
@@ -224,7 +300,13 @@ export function App({dataPath}: AppProps) {
             selectedIndex={selectedTaskIndex}
             active={panels[activePanel] === 'tasks'}
           />
-          <FocusPanel record={today} now={now} active={panels[activePanel] === 'focus'} />
+          <FocusPanel
+            record={today}
+            now={now}
+            active={panels[activePanel] === 'focus'}
+            config={loadConfig().focus}
+            status={focusConfigStatus}
+          />
           <WeatherPanel data={data} active={panels[activePanel] === 'weather'} status={weatherStatus} />
         </Layout>
         <NotePanel record={today} active={panels[activePanel] === 'note'} />
@@ -242,8 +324,10 @@ export function App({dataPath}: AppProps) {
   );
 }
 
-function formatEntryPrompt(entryMode: 'add' | 'edit' | 'location'): string {
+function formatEntryPrompt(entryMode: 'add' | 'edit' | 'location' | 'focusMinutes' | 'breakMinutes'): string {
   if (entryMode === 'add') return 'new task';
   if (entryMode === 'edit') return 'edit task';
+  if (entryMode === 'focusMinutes') return 'focus minutes';
+  if (entryMode === 'breakMinutes') return 'break minutes';
   return 'location name';
 }
