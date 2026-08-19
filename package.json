@@ -1,0 +1,31 @@
+{
+  "name": "kinoko",
+  "version": "0.1.0",
+  "description": "A cozy interactive terminal desktop for your day.",
+  "type": "module",
+  "bin": {
+    "kinoko": "./dist/cli.js"
+  },
+  "scripts": {
+    "dev": "tsx src/cli.tsx",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/cli.js",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "date-fns": "^3.6.0",
+    "ink": "^5.0.1",
+    "react": "^18.3.1",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.5.4",
+    "@types/react": "^18.3.5",
+    "tsx": "^4.19.1",
+    "typescript": "^5.6.2",
+    "vitest": "^4.1.11"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
