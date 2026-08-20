@@ -54,6 +54,7 @@ Local runtime files are created under `.kinoko/`, which is ignored by git.
 - `f`: configure default focus minutes
 - `g`: configure default break minutes
 - `l`: set weather location by name
+- `n`: edit pocket note
 - `t`: cycle theme
 - `r`: reset current focus session
 - `q`: quit
@@ -111,6 +112,7 @@ node dist/cli.js focus status
 node dist/cli.js config focus-minutes 45
 node dist/cli.js config break-minutes 10
 node dist/cli.js config theme pixel
+node dist/cli.js import tasks ./todo.txt
 ```
 
 When installed as a package, the same commands are available through `kinoko`.

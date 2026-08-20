@@ -20,6 +20,7 @@ import {
   pauseFocus,
   resetCurrentFocus,
   resumeFocus,
+  setNote,
   startBreak,
   saveData,
   startFocus,
@@ -60,7 +61,7 @@ export function App({dataPath}: AppProps) {
   const [weatherStatus, setWeatherStatus] = useState<string | null>(null);
   const [activePanel, setActivePanel] = useState(0);
   const [selectedTaskIndex, setSelectedTaskIndex] = useState(0);
-  const [entryMode, setEntryMode] = useState<'add' | 'edit' | 'location' | 'focusMinutes' | 'breakMinutes' | null>(null);
+  const [entryMode, setEntryMode] = useState<'add' | 'edit' | 'note' | 'location' | 'focusMinutes' | 'breakMinutes' | null>(null);
   const [entryText, setEntryText] = useState('');
   const [focusConfigStatus, setFocusConfigStatus] = useState<string | null>(null);
   const [showHelp, setShowHelp] = useState(false);
@@ -165,6 +166,13 @@ export function App({dataPath}: AppProps) {
           return;
         }
 
+        if (mode === 'note') {
+          setData(current => updateToday(current, record => setNote(record, text)));
+          setEntryMode(null);
+          setEntryText('');
+          return;
+        }
+
         setData(current =>
           updateToday(current, record => {
             if (mode === 'add') {
@@ -241,6 +249,13 @@ export function App({dataPath}: AppProps) {
       setActivePanel(panels.indexOf('focus'));
       setEntryMode('breakMinutes');
       setEntryText(String(loadConfig().focus.breakMinutes));
+      return;
+    }
+
+    if (input === 'n') {
+      setActivePanel(panels.indexOf('note'));
+      setEntryMode('note');
+      setEntryText(today.note);
       return;
     }
 
@@ -349,9 +364,10 @@ export function App({dataPath}: AppProps) {
   );
 }
 
-function formatEntryPrompt(entryMode: 'add' | 'edit' | 'location' | 'focusMinutes' | 'breakMinutes'): string {
+function formatEntryPrompt(entryMode: 'add' | 'edit' | 'note' | 'location' | 'focusMinutes' | 'breakMinutes'): string {
   if (entryMode === 'add') return 'new task';
   if (entryMode === 'edit') return 'edit task';
+  if (entryMode === 'note') return 'pocket note';
   if (entryMode === 'focusMinutes') return 'focus minutes';
   if (entryMode === 'breakMinutes') return 'break minutes';
   return 'location name';

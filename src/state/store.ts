@@ -78,6 +78,13 @@ export function addTask(record: DailyRecord, title: string): DailyRecord {
   };
 }
 
+export function addTasks(
+  record: DailyRecord,
+  tasks: Array<{title: string; done?: boolean}>
+): DailyRecord {
+  return tasks.reduce((current, task) => addTaskWithDone(current, task.title, task.done ?? false), record);
+}
+
 export function deleteTask(record: DailyRecord, taskIdOrIndex: string): DailyRecord {
   const taskId = resolveTaskId(record, taskIdOrIndex);
   return {
@@ -251,6 +258,25 @@ function parseData(raw: unknown, now: Date): KinokoData {
   };
 }
 
+function addTaskWithDone(record: DailyRecord, title: string, done: boolean): DailyRecord {
+  const cleanTitle = title.trim();
+  if (!cleanTitle) {
+    return record;
+  }
+
+  return {
+    ...record,
+    tasks: [
+      ...record.tasks,
+      {
+        id: createTaskId(cleanTitle, record.tasks.map(task => task.id)),
+        title: cleanTitle,
+        done
+      }
+    ]
+  };
+}
+
 function startFocusMode(
   record: DailyRecord,
   mode: 'focus' | 'break',
@@ -333,13 +359,15 @@ const legacyFocusStateSchema = FocusStateSchema.or(
   })
 );
 
-const legacyFlatDataSchema = DailyRecordSchema.extend({
-  focus: legacyFocusStateSchema,
-  weather: WeatherSchema
-});
-
 const legacyDailyRecordSchema = DailyRecordSchema.extend({
   focus: legacyFocusStateSchema
+});
+
+const legacyFlatDataSchema = z.object({
+  tasks: DailyRecordSchema.shape.tasks,
+  focus: legacyFocusStateSchema,
+  note: DailyRecordSchema.shape.note,
+  weather: WeatherSchema
 });
 
 const legacyV2DataSchema = KinokoDataSchema.extend({

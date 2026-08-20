@@ -14,6 +14,7 @@ export function HelpOverlay({palette = colors}: HelpOverlayProps) {
       <Text color={palette.cream}>tasks: ↑↓ move · enter done · a add · e edit · d delete</Text>
       <Text color={palette.cream}>focus: space start/pause/resume · b break · r reset · f/g durations</Text>
       <Text color={palette.cream}>weather: l set location by name</Text>
+      <Text color={palette.cream}>note: n edit pocket note</Text>
       <Text color={palette.cream}>themes: t cycle cozy/pixel/zen</Text>
       <Text color={palette.muted}>press ? or escape to close · q quits app</Text>
     </Box>

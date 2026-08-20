@@ -1,9 +1,11 @@
 #!/usr/bin/env node
+import {readFileSync} from 'node:fs';
 import React from 'react';
 import {render} from 'ink';
 import {App} from './App.js';
 import {
   addTask,
+  addTasks,
   deleteTask,
   editTask,
   getToday,
@@ -32,6 +34,7 @@ import {
   setWeatherLocation
 } from './config.js';
 import {fetchOpenMeteoWeather, geocodeLocation, markWeatherStale} from './weather/openMeteo.js';
+import {parseTaskFile} from './integrations/tasks.js';
 
 const [, , command, ...args] = process.argv;
 
@@ -77,6 +80,9 @@ async function main(): Promise<void> {
     case 'config':
       runConfigCommand(args);
       break;
+    case 'import':
+      runImportCommand(args);
+      break;
     case 'help':
     case '--help':
     case '-h':
@@ -86,6 +92,24 @@ async function main(): Promise<void> {
       console.error(`unknown command: ${command}`);
       printHelp();
       process.exitCode = 1;
+  }
+}
+
+function runImportCommand(args: string[]): void {
+  const [kind, filePath] = args;
+  requireArg(kind, 'usage: kinoko import tasks <path>');
+  requireArg(filePath, 'usage: kinoko import tasks <path>');
+  const content = readFileSync(filePath, 'utf8');
+
+  switch (kind) {
+    case 'tasks': {
+      const tasks = parseTaskFile(content);
+      runMutation(record => addTasks(record, tasks), `imported ${tasks.length} tasks`);
+      break;
+    }
+    default:
+      console.error('usage: kinoko import tasks <path>');
+      process.exit(1);
   }
 }
 
@@ -281,6 +305,7 @@ usage:
   kinoko config focus-minutes <n> set default focus length
   kinoko config break-minutes <n> set default break length
   kinoko config theme <name>      set theme: cozy, pixel, zen
+  kinoko import tasks <path>      import Markdown or Todo.txt tasks
 `);
 }
 

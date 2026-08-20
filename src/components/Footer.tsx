@@ -11,7 +11,7 @@ type FooterProps = {
 export function Footer({palette = colors, mascotArt = mascot}: FooterProps) {
   return (
     <Box justifyContent="space-between">
-      <Text color={palette.muted}>? help · tab switch · a/e/d tasks · l location · f/g durations · space/b focus · q quit</Text>
+      <Text color={palette.muted}>? help · a/e/d tasks · n note · l location · f/g durations · space/b focus · q quit</Text>
       <Text color={palette.cap}>{mascotArt}</Text>
     </Box>
   );
