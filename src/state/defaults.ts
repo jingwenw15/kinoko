@@ -11,6 +11,7 @@ export const defaultDailyRecord: DailyRecord = {
     status: 'idle',
     activeStartedAt: null,
     sessionStartedAt: null,
+    elapsedSeconds: 0,
     targetMinutes: 25,
     pausedMode: null,
     sessions: []

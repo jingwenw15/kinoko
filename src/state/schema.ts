@@ -18,6 +18,7 @@ export const FocusStateSchema = z.object({
   status: z.enum(['idle', 'focus', 'break', 'paused']),
   activeStartedAt: z.string().datetime().nullable(),
   sessionStartedAt: z.string().datetime().nullable(),
+  elapsedSeconds: z.number().int().nonnegative(),
   targetMinutes: z.number().positive(),
   pausedMode: z.enum(['focus', 'break']).nullable(),
   sessions: z.array(FocusSessionSchema)

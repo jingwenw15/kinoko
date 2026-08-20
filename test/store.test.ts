@@ -103,24 +103,21 @@ describe('store', () => {
     const paused = pauseFocus(running, pause);
     expect(paused.focus.status).toBe('paused');
     expect(paused.focus.activeStartedAt).toBeNull();
-    expect(paused.focus.todayMinutes).toBe(12);
-    expect(paused.focus.sessions).toEqual([
-      {
-        type: 'focus',
-        startedAt: start.toISOString(),
-        endedAt: pause.toISOString(),
-        minutes: 12
-      }
-    ]);
+    expect(paused.focus.elapsedSeconds).toBe(750);
+    expect(paused.focus.todayMinutes).toBe(0);
+    expect(getFocusRemainingSeconds(paused, pause)).toBe(750);
+    expect(paused.focus.sessions).toEqual([]);
 
     const resumed = resumeFocus(paused, new Date('2026-08-19T19:20:00.000Z'));
     expect(resumed.focus.status).toBe('focus');
+    expect(getFocusRemainingSeconds(resumed, new Date('2026-08-19T19:20:00.000Z'))).toBe(750);
 
     const reset = resetCurrentFocus(paused);
     expect(reset.focus.status).toBe('idle');
     expect(reset.focus.activeStartedAt).toBeNull();
-    expect(reset.focus.todayMinutes).toBe(12);
-    expect(reset.focus.sessions).toHaveLength(1);
+    expect(reset.focus.elapsedSeconds).toBe(0);
+    expect(reset.focus.todayMinutes).toBe(0);
+    expect(reset.focus.sessions).toHaveLength(0);
   });
 
   it('tracks break sessions without adding focus minutes', () => {
@@ -131,9 +128,7 @@ describe('store', () => {
 
     expect(running.focus.status).toBe('break');
     expect(paused.focus.todayMinutes).toBe(0);
-    expect(paused.focus.sessions[0]).toMatchObject({
-      type: 'break',
-      minutes: 4
-    });
+    expect(paused.focus.elapsedSeconds).toBe(250);
+    expect(paused.focus.sessions).toEqual([]);
   });
 });

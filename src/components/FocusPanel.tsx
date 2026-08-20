@@ -45,7 +45,7 @@ export function FocusPanel({record, now, active, config, status}: FocusPanelProp
       <Text color={running ? colors.moss : colors.muted}>
         {running ? 'running · space pauses' : 'space starts/resumes'}
       </Text>
-      <Text color={colors.muted}>f focus length · g break length</Text>
+      <Text color={colors.muted}>r resets segment · f/g set lengths</Text>
       {status && <Text color={colors.amber}>{status}</Text>}
     </Panel>
   );

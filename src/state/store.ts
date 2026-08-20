@@ -135,31 +135,18 @@ export function pauseFocus(record: DailyRecord, now = new Date()): DailyRecord {
   }
 
   const startedAt = new Date(record.focus.activeStartedAt);
-  const elapsedMinutes = Math.max(0, Math.floor((now.getTime() - startedAt.getTime()) / 60000));
+  const elapsedSeconds = Math.max(0, Math.floor((now.getTime() - startedAt.getTime()) / 1000));
   const sessionType = record.focus.status as 'focus' | 'break';
 
   return {
     ...record,
     focus: {
       ...record.focus,
-      todayMinutes:
-        sessionType === 'focus' ? record.focus.todayMinutes + elapsedMinutes : record.focus.todayMinutes,
       status: 'paused',
       activeStartedAt: null,
-      sessionStartedAt: null,
+      elapsedSeconds: record.focus.elapsedSeconds + elapsedSeconds,
       pausedMode: sessionType,
-      sessions:
-        elapsedMinutes > 0
-          ? [
-              ...record.focus.sessions,
-              {
-                type: sessionType,
-                startedAt: record.focus.sessionStartedAt,
-                endedAt: now.toISOString(),
-                minutes: elapsedMinutes
-              }
-            ]
-          : record.focus.sessions
+      sessions: record.focus.sessions
     }
   };
 }
@@ -172,6 +159,7 @@ export function resetCurrentFocus(record: DailyRecord, targetMinutes = 25): Dail
       status: 'idle',
       activeStartedAt: null,
       sessionStartedAt: null,
+      elapsedSeconds: 0,
       pausedMode: null,
       targetMinutes
     }
@@ -179,13 +167,11 @@ export function resetCurrentFocus(record: DailyRecord, targetMinutes = 25): Dail
 }
 
 export function getDisplayedFocusMinutes(record: DailyRecord, now = new Date()): number {
-  if (record.focus.status !== 'focus' || !record.focus.activeStartedAt) {
+  if (record.focus.status !== 'focus') {
     return record.focus.todayMinutes;
   }
 
-  const startedAt = new Date(record.focus.activeStartedAt);
-  const elapsedMinutes = Math.max(0, Math.floor((now.getTime() - startedAt.getTime()) / 60000));
-  return record.focus.todayMinutes + elapsedMinutes;
+  return record.focus.todayMinutes + Math.floor(getFocusElapsedSeconds(record, now) / 60);
 }
 
 export function startFocus(record: DailyRecord, now = new Date(), targetMinutes = 25): DailyRecord {
@@ -207,10 +193,11 @@ export function resumeFocus(record: DailyRecord, now = new Date()): DailyRecord 
 
 export function getFocusElapsedSeconds(record: DailyRecord, now = new Date()): number {
   if (!record.focus.activeStartedAt || !['focus', 'break'].includes(record.focus.status)) {
-    return 0;
+    return record.focus.elapsedSeconds;
   }
 
-  return Math.max(0, Math.floor((now.getTime() - new Date(record.focus.activeStartedAt).getTime()) / 1000));
+  return record.focus.elapsedSeconds +
+    Math.max(0, Math.floor((now.getTime() - new Date(record.focus.activeStartedAt).getTime()) / 1000));
 }
 
 export function getFocusRemainingSeconds(record: DailyRecord, now = new Date()): number {
@@ -294,7 +281,7 @@ function startFocusMode(
       ...record.focus,
       status: mode,
       activeStartedAt: timestamp,
-      sessionStartedAt: timestamp,
+      sessionStartedAt: record.focus.sessionStartedAt ?? timestamp,
       targetMinutes,
       pausedMode: null
     }
@@ -312,6 +299,7 @@ function migrateFocusState(focus: LegacyFocusState | FocusState): FocusState {
     status: focus.activeStartedAt ? 'focus' : 'idle',
     activeStartedAt: focus.activeStartedAt,
     sessionStartedAt: focus.activeStartedAt,
+    elapsedSeconds: 0,
     targetMinutes: 25,
     pausedMode: null,
     sessions: []

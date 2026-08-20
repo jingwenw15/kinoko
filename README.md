@@ -56,7 +56,7 @@ Local runtime files are created under `.kinoko/`, which is ignored by git.
 - `l`: set weather location by name
 - `n`: edit pocket note
 - `t`: cycle theme
-- `r`: reset current focus session
+- `r`: reset current focus/break segment
 - `q`: quit
 
 ## Data
