@@ -8,6 +8,7 @@ import {useClock} from './hooks/useClock.js';
 import {useTerminalSize} from './hooks/useTerminalSize.js';
 import {
   addTask,
+  addRepoGardenDir,
   deleteTask,
   editTask,
   feedPet,
@@ -18,7 +19,9 @@ import {
   resetCurrentFocus,
   resumeFocus,
   renamePet,
+  removeSelectedRepoGardenDir,
   setNote,
+  selectRepoGardenDir,
   startBreak,
   saveData,
   startFocus,
@@ -60,7 +63,7 @@ export function App({dataPath}: AppProps) {
   const [selectedModuleIndex, setSelectedModuleIndex] = useState(0);
   const [activeModuleId, setActiveModuleId] = useState<ModuleId | null>(null);
   const [selectedTaskIndex, setSelectedTaskIndex] = useState(0);
-  const [entryMode, setEntryMode] = useState<'add' | 'edit' | 'note' | 'location' | 'focusMinutes' | 'breakMinutes' | 'petName' | null>(null);
+  const [entryMode, setEntryMode] = useState<'add' | 'edit' | 'note' | 'location' | 'focusMinutes' | 'breakMinutes' | 'petName' | 'repoDir' | null>(null);
   const [entryText, setEntryText] = useState('');
   const [focusConfigStatus, setFocusConfigStatus] = useState<string | null>(null);
   const [showHelp, setShowHelp] = useState(false);
@@ -174,6 +177,13 @@ export function App({dataPath}: AppProps) {
 
         if (mode === 'petName') {
           setData(current => renamePet(current, text));
+          setEntryMode(null);
+          setEntryText('');
+          return;
+        }
+
+        if (mode === 'repoDir') {
+          setData(current => addRepoGardenDir(current, text));
           setEntryMode(null);
           setEntryText('');
           return;
@@ -300,8 +310,18 @@ export function App({dataPath}: AppProps) {
       return;
     }
 
+    if (input === '6') {
+      setSelectedModule('repoGarden', setSelectedModuleIndex, setActiveModuleId, Boolean(activeModuleId));
+      return;
+    }
+
     if (input === 'p') {
       setSelectedModule('pet', setSelectedModuleIndex, setActiveModuleId, Boolean(activeModuleId));
+      return;
+    }
+
+    if (input === 'v') {
+      setSelectedModule('repoGarden', setSelectedModuleIndex, setActiveModuleId, Boolean(activeModuleId));
       return;
     }
 
@@ -344,6 +364,31 @@ export function App({dataPath}: AppProps) {
       setSelectedModule('pet', setSelectedModuleIndex, setActiveModuleId, Boolean(activeModuleId));
       setData(current => feedPet(current, new Date()));
       return;
+    }
+
+    if (input === 'y') {
+      setSelectedModule('repoGarden', setSelectedModuleIndex, setActiveModuleId, Boolean(activeModuleId));
+      setEntryMode('repoDir');
+      setEntryText('');
+      return;
+    }
+
+    if (input === 'u') {
+      setSelectedModule('repoGarden', setSelectedModuleIndex, setActiveModuleId, Boolean(activeModuleId));
+      setData(current => removeSelectedRepoGardenDir(current));
+      return;
+    }
+
+    if (selectedModuleId === 'repoGarden') {
+      if (key.upArrow) {
+        setData(current => selectRepoGardenDir(current, -1));
+        return;
+      }
+
+      if (key.downArrow) {
+        setData(current => selectRepoGardenDir(current, 1));
+        return;
+      }
     }
 
     if (selectedModuleId === 'tasks') {
@@ -471,13 +516,14 @@ function setSelectedModule(
   }
 }
 
-function formatEntryPrompt(entryMode: 'add' | 'edit' | 'note' | 'location' | 'focusMinutes' | 'breakMinutes' | 'petName'): string {
+function formatEntryPrompt(entryMode: 'add' | 'edit' | 'note' | 'location' | 'focusMinutes' | 'breakMinutes' | 'petName' | 'repoDir'): string {
   if (entryMode === 'add') return 'new task';
   if (entryMode === 'edit') return 'edit task';
   if (entryMode === 'note') return 'pocket note';
   if (entryMode === 'focusMinutes') return 'focus minutes';
   if (entryMode === 'breakMinutes') return 'break minutes';
   if (entryMode === 'petName') return 'pet name';
+  if (entryMode === 'repoDir') return 'repo scan dir';
   return 'location name';
 }
 

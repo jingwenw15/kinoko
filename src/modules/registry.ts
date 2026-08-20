@@ -3,6 +3,7 @@ import {focusModule} from './focus/index.js';
 import {weatherModule} from './weather/index.js';
 import {noteModule} from './note/index.js';
 import {petModule} from './pet/index.js';
+import {repoGardenModule} from './repoGarden/index.js';
 import type {KinokoModule, ModuleId} from './types.js';
 
 export const modules: KinokoModule[] = [
@@ -10,7 +11,8 @@ export const modules: KinokoModule[] = [
   focusModule,
   weatherModule,
   noteModule,
-  petModule
+  petModule,
+  repoGardenModule
 ].sort((a, b) => a.order - b.order);
 
 export const moduleIds = modules.map(module => module.id);

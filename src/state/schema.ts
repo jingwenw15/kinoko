@@ -53,6 +53,11 @@ export const PetSchema = z.object({
   lastFedAt: z.string().datetime().nullable()
 });
 
+export const RepoGardenSchema = z.object({
+  scanDirs: z.array(z.string().min(1)),
+  selectedRepoIndex: z.number().int().nonnegative()
+});
+
 export const KinokoConfigSchema = z.object({
   version: z.literal(1),
   weather: z.object({
@@ -77,7 +82,8 @@ export const KinokoDataSchema = z.object({
   days: z.record(DailyRecordSchema),
   weather: WeatherSchema,
   features: z.object({
-    pet: PetSchema
+    pet: PetSchema,
+    repoGarden: RepoGardenSchema
   })
 });
 
@@ -87,5 +93,6 @@ export type FocusState = z.infer<typeof FocusStateSchema>;
 export type DailyRecord = z.infer<typeof DailyRecordSchema>;
 export type Weather = z.infer<typeof WeatherSchema>;
 export type Pet = z.infer<typeof PetSchema>;
+export type RepoGarden = z.infer<typeof RepoGardenSchema>;
 export type KinokoConfig = z.infer<typeof KinokoConfigSchema>;
 export type KinokoData = z.infer<typeof KinokoDataSchema>;

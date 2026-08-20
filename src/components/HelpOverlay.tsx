@@ -11,12 +11,13 @@ export function HelpOverlay({palette = colors}: HelpOverlayProps) {
     <Box borderStyle="round" borderColor={palette.cap} flexDirection="column" paddingX={1}>
       <Text color={palette.cap}>kinoko help</Text>
       <Text color={palette.cream}>home: ↑↓ choose · enter open · esc/backspace returns home</Text>
-      <Text color={palette.cream}>tab / shift-tab: switch modules · 1-5 jump modules</Text>
+      <Text color={palette.cream}>tab / shift-tab: switch modules · 1-6 jump modules</Text>
       <Text color={palette.cream}>tasks: ↑↓ move · enter done · a add · e edit · d delete</Text>
       <Text color={palette.cream}>focus: space start/pause/resume · b break · r reset segment · f/g durations</Text>
       <Text color={palette.cream}>weather: l set location by name</Text>
       <Text color={palette.cream}>note: n edit pocket note</Text>
       <Text color={palette.cream}>pet: p open · x feed · m rename</Text>
+      <Text color={palette.cream}>repo garden: v open · y add scan dir · u remove scan dir</Text>
       <Text color={palette.cream}>themes: t cycle cozy/pixel/zen</Text>
       <Text color={palette.muted}>press ? or escape to close · q quits app</Text>
     </Box>

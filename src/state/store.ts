@@ -13,7 +13,7 @@ import {
   type FocusState,
   type KinokoData
 } from './schema.js';
-import {defaultDailyRecord, defaultData, defaultPet, defaultWeather} from './defaults.js';
+import {defaultDailyRecord, defaultData, defaultPet, defaultRepoGarden, defaultWeather} from './defaults.js';
 
 const dataPath = getKinokoDataPath();
 
@@ -160,6 +160,53 @@ export function feedPet(data: KinokoData, now = new Date()): KinokoData {
   };
 }
 
+export function addRepoGardenDir(data: KinokoData, dir: string): KinokoData {
+  const cleanDir = dir.trim();
+  if (!cleanDir || data.features.repoGarden.scanDirs.includes(cleanDir)) {
+    return data;
+  }
+
+  return {
+    ...data,
+    features: {
+      ...data.features,
+      repoGarden: {
+        ...data.features.repoGarden,
+        scanDirs: [...data.features.repoGarden.scanDirs, cleanDir]
+      }
+    }
+  };
+}
+
+export function removeSelectedRepoGardenDir(data: KinokoData): KinokoData {
+  const index = data.features.repoGarden.selectedRepoIndex;
+  return {
+    ...data,
+    features: {
+      ...data.features,
+      repoGarden: {
+        ...data.features.repoGarden,
+        scanDirs: data.features.repoGarden.scanDirs.filter((_, dirIndex) => dirIndex !== index),
+        selectedRepoIndex: Math.max(0, Math.min(index, data.features.repoGarden.scanDirs.length - 2))
+      }
+    }
+  };
+}
+
+export function selectRepoGardenDir(data: KinokoData, direction: -1 | 1): KinokoData {
+  const maxIndex = Math.max(0, data.features.repoGarden.scanDirs.length - 1);
+  return {
+    ...data,
+    features: {
+      ...data.features,
+      repoGarden: {
+        ...data.features.repoGarden,
+        selectedRepoIndex: Math.max(0, Math.min(maxIndex, data.features.repoGarden.selectedRepoIndex + direction))
+      }
+    }
+  };
+}
+
 export function pauseFocus(record: DailyRecord, now = new Date()): DailyRecord {
   if (
     !record.focus.activeStartedAt ||
@@ -246,6 +293,17 @@ function parseData(raw: unknown, now: Date): KinokoData {
     return normalizeData(versioned.data);
   }
 
+  const v3WithoutRepoGarden = legacyV3DataSchema.safeParse(raw);
+  if (v3WithoutRepoGarden.success) {
+    return normalizeData({
+      ...v3WithoutRepoGarden.data,
+      features: {
+        pet: v3WithoutRepoGarden.data.features.pet,
+        repoGarden: v3WithoutRepoGarden.data.features.repoGarden ?? defaultRepoGarden
+      }
+    });
+  }
+
   const v2Current = legacyCurrentV2DataSchema.safeParse(raw);
   if (v2Current.success) {
     return {
@@ -253,7 +311,8 @@ function parseData(raw: unknown, now: Date): KinokoData {
       days: v2Current.data.days,
       weather: v2Current.data.weather,
       features: {
-        pet: defaultPet
+        pet: defaultPet,
+        repoGarden: defaultRepoGarden
       }
     };
   }
@@ -273,7 +332,8 @@ function parseData(raw: unknown, now: Date): KinokoData {
       ),
       weather: v2Legacy.data.weather,
       features: {
-        pet: defaultPet
+        pet: defaultPet,
+        repoGarden: defaultRepoGarden
       }
     };
   }
@@ -294,7 +354,8 @@ function parseData(raw: unknown, now: Date): KinokoData {
     },
     weather: legacy.data.weather ?? defaultWeather,
     features: {
-      pet: defaultPet
+      pet: defaultPet,
+      repoGarden: defaultRepoGarden
     }
   };
 }
@@ -307,7 +368,8 @@ function normalizeData(data: KinokoData): KinokoData {
       pet: {
         ...data.features.pet,
         species: 'cat'
-      }
+      },
+      repoGarden: data.features.repoGarden ?? defaultRepoGarden
     }
   };
 }
@@ -434,6 +496,21 @@ const legacyCurrentV2DataSchema = z.object({
       pet: PetSchema
     })
     .optional()
+});
+
+const legacyV3DataSchema = z.object({
+  version: z.literal(3),
+  days: z.record(DailyRecordSchema),
+  weather: WeatherSchema,
+  features: z.object({
+    pet: PetSchema,
+    repoGarden: z
+      .object({
+        scanDirs: z.array(z.string().min(1)),
+        selectedRepoIndex: z.number().int().nonnegative()
+      })
+      .optional()
+  })
 });
 
 const legacyV2DataSchema = legacyCurrentV2DataSchema.extend({

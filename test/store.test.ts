@@ -4,6 +4,7 @@ import {join} from 'node:path';
 import {describe, expect, it} from 'vitest';
 import {
   addTask,
+  addRepoGardenDir,
   deleteTask,
   editTask,
   feedPet,
@@ -13,8 +14,10 @@ import {
   loadData,
   pauseFocus,
   renamePet,
+  removeSelectedRepoGardenDir,
   resetCurrentFocus,
   resumeFocus,
+  selectRepoGardenDir,
   saveData,
   setNote,
   startBreak,
@@ -149,16 +152,50 @@ describe('store', () => {
 
   it('normalizes old pet species to cat', () => {
     const path = tempDataPath();
-    saveData({
-      ...defaultData,
-      features: {
-        pet: {
-          ...defaultData.features.pet,
-          species: 'mushroom'
+    writeFileSync(
+      path,
+      JSON.stringify({
+        ...defaultData,
+        features: {
+          ...defaultData.features,
+          pet: {
+            ...defaultData.features.pet,
+            species: 'mushroom'
+          }
         }
-      }
-    }, path);
+      }),
+      'utf8'
+    );
 
     expect(loadData(path).features.pet.species).toBe('cat');
+  });
+
+  it('adds, selects, and removes repo garden scan dirs', () => {
+    const withDirs = addRepoGardenDir(addRepoGardenDir(defaultData, '/tmp/a'), '/tmp/b');
+    const selected = selectRepoGardenDir(withDirs, 1);
+    const removed = removeSelectedRepoGardenDir(selected);
+
+    expect(withDirs.features.repoGarden.scanDirs).toEqual(['/tmp/a', '/tmp/b']);
+    expect(selected.features.repoGarden.selectedRepoIndex).toBe(1);
+    expect(removed.features.repoGarden.scanDirs).toEqual(['/tmp/a']);
+    expect(removed.features.repoGarden.selectedRepoIndex).toBe(0);
+  });
+
+  it('migrates v3 data without repo garden state', () => {
+    const path = tempDataPath();
+    writeFileSync(
+      path,
+      JSON.stringify({
+        version: 3,
+        days: {},
+        weather: defaultData.weather,
+        features: {
+          pet: defaultData.features.pet
+        }
+      }),
+      'utf8'
+    );
+
+    expect(loadData(path).features.repoGarden).toEqual({scanDirs: [], selectedRepoIndex: 0});
   });
 });

@@ -47,6 +47,10 @@
       "happiness": 70,
       "fedCount": 0,
       "lastFedAt": null
+    },
+    "repoGarden": {
+      "scanDirs": [],
+      "selectedRepoIndex": 0
     }
   }
 }

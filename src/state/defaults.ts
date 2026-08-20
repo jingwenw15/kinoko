@@ -1,4 +1,4 @@
-import type {DailyRecord, KinokoConfig, KinokoData, Pet, Weather} from './schema.js';
+import type {DailyRecord, KinokoConfig, KinokoData, Pet, RepoGarden, Weather} from './schema.js';
 
 export const defaultDailyRecord: DailyRecord = {
   tasks: [
@@ -36,12 +36,18 @@ export const defaultPet: Pet = {
   lastFedAt: null
 };
 
+export const defaultRepoGarden: RepoGarden = {
+  scanDirs: [],
+  selectedRepoIndex: 0
+};
+
 export const defaultData: KinokoData = {
   version: 3,
   days: {},
   weather: defaultWeather,
   features: {
-    pet: defaultPet
+    pet: defaultPet,
+    repoGarden: defaultRepoGarden
   }
 };
 
