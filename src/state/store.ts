@@ -11,7 +11,8 @@ import {
   WeatherSchema,
   type DailyRecord,
   type FocusState,
-  type KinokoData
+  type KinokoData,
+  type Pet
 } from './schema.js';
 import {defaultDailyRecord, defaultData, defaultPet, defaultRepoGarden, defaultWeather} from './defaults.js';
 
@@ -138,13 +139,15 @@ export function renamePet(data: KinokoData, name: string): KinokoData {
       ...data.features,
       pet: {
         ...data.features.pet,
-        name: cleanName.slice(0, 32)
+        name: cleanName.slice(0, 32),
+        log: pushPetLog(data.features.pet, `renamed to ${cleanName.slice(0, 32)}`)
       }
     }
   };
 }
 
 export function feedPet(data: KinokoData, now = new Date()): KinokoData {
+  const timestamp = now.toISOString();
   return {
     ...data,
     features: {
@@ -153,8 +156,85 @@ export function feedPet(data: KinokoData, now = new Date()): KinokoData {
         ...data.features.pet,
         hunger: Math.max(0, data.features.pet.hunger - 25),
         happiness: Math.min(100, data.features.pet.happiness + 10),
+        energy: Math.min(100, data.features.pet.energy + 5),
         fedCount: data.features.pet.fedCount + 1,
-        lastFedAt: now.toISOString()
+        lastFedAt: timestamp,
+        log: pushPetLog(data.features.pet, `ate a snack at ${formatPetTime(now)}`)
+      }
+    }
+  };
+}
+
+export function playWithPet(data: KinokoData, now = new Date()): KinokoData {
+  const timestamp = now.toISOString();
+  return {
+    ...data,
+    features: {
+      ...data.features,
+      pet: {
+        ...data.features.pet,
+        hunger: Math.min(100, data.features.pet.hunger + 10),
+        happiness: Math.min(100, data.features.pet.happiness + 18),
+        energy: Math.max(0, data.features.pet.energy - 20),
+        cleanliness: Math.max(0, data.features.pet.cleanliness - 8),
+        playCount: data.features.pet.playCount + 1,
+        lastPlayedAt: timestamp,
+        log: pushPetLog(data.features.pet, `played with ${data.features.pet.favoriteToy}`)
+      }
+    }
+  };
+}
+
+export function petCat(data: KinokoData, now = new Date()): KinokoData {
+  const timestamp = now.toISOString();
+  return {
+    ...data,
+    features: {
+      ...data.features,
+      pet: {
+        ...data.features.pet,
+        happiness: Math.min(100, data.features.pet.happiness + 8),
+        energy: Math.min(100, data.features.pet.energy + 3),
+        petCount: data.features.pet.petCount + 1,
+        lastPetAt: timestamp,
+        log: pushPetLog(data.features.pet, `got scritches at ${formatPetTime(now)}`)
+      }
+    }
+  };
+}
+
+export function cleanPet(data: KinokoData, now = new Date()): KinokoData {
+  const timestamp = now.toISOString();
+  return {
+    ...data,
+    features: {
+      ...data.features,
+      pet: {
+        ...data.features.pet,
+        cleanliness: 100,
+        happiness: Math.max(0, data.features.pet.happiness - 4),
+        cleanedCount: data.features.pet.cleanedCount + 1,
+        lastCleanedAt: timestamp,
+        log: pushPetLog(data.features.pet, `got brushed clean`)
+      }
+    }
+  };
+}
+
+export function setPetToy(data: KinokoData, toy: string): KinokoData {
+  const cleanToy = toy.trim();
+  if (!cleanToy) {
+    return data;
+  }
+
+  return {
+    ...data,
+    features: {
+      ...data.features,
+      pet: {
+        ...data.features.pet,
+        favoriteToy: cleanToy.slice(0, 32),
+        log: pushPetLog(data.features.pet, `favorite toy is now ${cleanToy.slice(0, 32)}`)
       }
     }
   };
@@ -295,13 +375,13 @@ function parseData(raw: unknown, now: Date): KinokoData {
 
   const v3WithoutRepoGarden = legacyV3DataSchema.safeParse(raw);
   if (v3WithoutRepoGarden.success) {
-    return normalizeData({
+    return {
       ...v3WithoutRepoGarden.data,
       features: {
-        pet: v3WithoutRepoGarden.data.features.pet,
+        pet: normalizePet(v3WithoutRepoGarden.data.features.pet),
         repoGarden: v3WithoutRepoGarden.data.features.repoGarden ?? defaultRepoGarden
       }
-    });
+    };
   }
 
   const v2Current = legacyCurrentV2DataSchema.safeParse(raw);
@@ -361,17 +441,32 @@ function parseData(raw: unknown, now: Date): KinokoData {
 }
 
 function normalizeData(data: KinokoData): KinokoData {
+  const pet = normalizePet(data.features.pet);
   return {
     ...data,
     features: {
       ...data.features,
-      pet: {
-        ...data.features.pet,
-        species: 'cat'
-      },
+      pet,
       repoGarden: data.features.repoGarden ?? defaultRepoGarden
     }
   };
+}
+
+function normalizePet(pet: Partial<Pet>): Pet {
+  return {
+    ...defaultPet,
+    ...pet,
+    species: 'cat',
+    log: pet.log?.slice(-5) ?? defaultPet.log
+  };
+}
+
+function pushPetLog(pet: Pet, entry: string): string[] {
+  return [entry, ...pet.log].slice(0, 5);
+}
+
+function formatPetTime(date: Date): string {
+  return format(date, 'h:mm a');
 }
 
 function addTaskWithDone(record: DailyRecord, title: string, done: boolean): DailyRecord {
@@ -498,12 +593,21 @@ const legacyCurrentV2DataSchema = z.object({
     .optional()
 });
 
+const legacyPetSchema = PetSchema.partial().extend({
+  name: z.string().min(1),
+  species: z.enum(['cat', 'mushroom']),
+  hunger: z.number().int().min(0).max(100),
+  happiness: z.number().int().min(0).max(100),
+  fedCount: z.number().int().nonnegative(),
+  lastFedAt: z.string().datetime().nullable()
+});
+
 const legacyV3DataSchema = z.object({
   version: z.literal(3),
   days: z.record(DailyRecordSchema),
   weather: WeatherSchema,
   features: z.object({
-    pet: PetSchema,
+    pet: legacyPetSchema,
     repoGarden: z
       .object({
         scanDirs: z.array(z.string().min(1)),

@@ -49,8 +49,18 @@ export const PetSchema = z.object({
   species: z.enum(['cat', 'mushroom']),
   hunger: z.number().int().min(0).max(100),
   happiness: z.number().int().min(0).max(100),
+  energy: z.number().int().min(0).max(100),
+  cleanliness: z.number().int().min(0).max(100),
   fedCount: z.number().int().nonnegative(),
-  lastFedAt: z.string().datetime().nullable()
+  playCount: z.number().int().nonnegative(),
+  petCount: z.number().int().nonnegative(),
+  cleanedCount: z.number().int().nonnegative(),
+  favoriteToy: z.string().min(1),
+  lastFedAt: z.string().datetime().nullable(),
+  lastPlayedAt: z.string().datetime().nullable(),
+  lastPetAt: z.string().datetime().nullable(),
+  lastCleanedAt: z.string().datetime().nullable(),
+  log: z.array(z.string().min(1)).max(5)
 });
 
 export const RepoGardenSchema = z.object({

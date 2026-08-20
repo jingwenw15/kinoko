@@ -5,6 +5,7 @@ import {describe, expect, it} from 'vitest';
 import {
   addTask,
   addRepoGardenDir,
+  cleanPet,
   deleteTask,
   editTask,
   feedPet,
@@ -13,6 +14,8 @@ import {
   getToday,
   loadData,
   pauseFocus,
+  petCat,
+  playWithPet,
   renamePet,
   removeSelectedRepoGardenDir,
   resetCurrentFocus,
@@ -20,6 +23,7 @@ import {
   selectRepoGardenDir,
   saveData,
   setNote,
+  setPetToy,
   startBreak,
   startFocus,
   toggleTask,
@@ -146,8 +150,25 @@ describe('store', () => {
     expect(renamed.features.pet.name).toBe('Mochi');
     expect(fed.features.pet.hunger).toBe(10);
     expect(fed.features.pet.happiness).toBe(80);
+    expect(fed.features.pet.energy).toBe(70);
     expect(fed.features.pet.fedCount).toBe(1);
     expect(fed.features.pet.lastFedAt).toBe(fedAt.toISOString());
+    expect(fed.features.pet.log[0]).toContain('ate a snack');
+  });
+
+  it('plays with, scritches, cleans, and changes toy for the pet', () => {
+    const played = playWithPet(defaultData, new Date('2026-08-19T19:00:00.000Z'));
+    const scritched = petCat(played, new Date('2026-08-19T19:01:00.000Z'));
+    const cleaned = cleanPet(scritched, new Date('2026-08-19T19:02:00.000Z'));
+    const toy = setPetToy(cleaned, 'crinkle fish');
+
+    expect(played.features.pet.playCount).toBe(1);
+    expect(played.features.pet.energy).toBe(45);
+    expect(played.features.pet.hunger).toBe(45);
+    expect(scritched.features.pet.petCount).toBe(1);
+    expect(cleaned.features.pet.cleanliness).toBe(100);
+    expect(toy.features.pet.favoriteToy).toBe('crinkle fish');
+    expect(toy.features.pet.log).toHaveLength(5);
   });
 
   it('normalizes old pet species to cat', () => {
@@ -168,6 +189,36 @@ describe('store', () => {
     );
 
     expect(loadData(path).features.pet.species).toBe('cat');
+  });
+
+  it('migrates older pet details into the expanded pet state', () => {
+    const path = tempDataPath();
+    writeFileSync(
+      path,
+      JSON.stringify({
+        version: 3,
+        days: {},
+        weather: defaultData.weather,
+        features: {
+          pet: {
+            name: 'Mochi',
+            species: 'cat',
+            hunger: 20,
+            happiness: 90,
+            fedCount: 3,
+            lastFedAt: null
+          },
+          repoGarden: defaultData.features.repoGarden
+        }
+      }),
+      'utf8'
+    );
+
+    const pet = loadData(path).features.pet;
+    expect(pet.name).toBe('Mochi');
+    expect(pet.energy).toBe(65);
+    expect(pet.cleanliness).toBe(80);
+    expect(pet.favoriteToy).toBe('yarn mouse');
   });
 
   it('adds, selects, and removes repo garden scan dirs', () => {

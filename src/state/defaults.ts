@@ -32,8 +32,18 @@ export const defaultPet: Pet = {
   species: 'cat',
   hunger: 35,
   happiness: 70,
+  energy: 65,
+  cleanliness: 80,
   fedCount: 0,
-  lastFedAt: null
+  playCount: 0,
+  petCount: 0,
+  cleanedCount: 0,
+  favoriteToy: 'yarn mouse',
+  lastFedAt: null,
+  lastPlayedAt: null,
+  lastPetAt: null,
+  lastCleanedAt: null,
+  log: ['kinoko moved in.']
 };
 
 export const defaultRepoGarden: RepoGarden = {

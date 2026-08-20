@@ -9,6 +9,7 @@ import {useTerminalSize} from './hooks/useTerminalSize.js';
 import {
   addTask,
   addRepoGardenDir,
+  cleanPet,
   deleteTask,
   editTask,
   feedPet,
@@ -16,11 +17,14 @@ import {
   getToday,
   loadData,
   pauseFocus,
+  petCat,
+  playWithPet,
   resetCurrentFocus,
   resumeFocus,
   renamePet,
   removeSelectedRepoGardenDir,
   setNote,
+  setPetToy,
   selectRepoGardenDir,
   startBreak,
   saveData,
@@ -63,7 +67,7 @@ export function App({dataPath}: AppProps) {
   const [selectedModuleIndex, setSelectedModuleIndex] = useState(0);
   const [activeModuleId, setActiveModuleId] = useState<ModuleId | null>(null);
   const [selectedTaskIndex, setSelectedTaskIndex] = useState(0);
-  const [entryMode, setEntryMode] = useState<'add' | 'edit' | 'note' | 'location' | 'focusMinutes' | 'breakMinutes' | 'petName' | 'repoDir' | null>(null);
+  const [entryMode, setEntryMode] = useState<'add' | 'edit' | 'note' | 'location' | 'focusMinutes' | 'breakMinutes' | 'petName' | 'petToy' | 'repoDir' | null>(null);
   const [entryText, setEntryText] = useState('');
   const [focusConfigStatus, setFocusConfigStatus] = useState<string | null>(null);
   const [showHelp, setShowHelp] = useState(false);
@@ -177,6 +181,13 @@ export function App({dataPath}: AppProps) {
 
         if (mode === 'petName') {
           setData(current => renamePet(current, text));
+          setEntryMode(null);
+          setEntryText('');
+          return;
+        }
+
+        if (mode === 'petToy') {
+          setData(current => setPetToy(current, text));
           setEntryMode(null);
           setEntryText('');
           return;
@@ -366,6 +377,31 @@ export function App({dataPath}: AppProps) {
       return;
     }
 
+    if (input === 'z') {
+      setSelectedModule('pet', setSelectedModuleIndex, setActiveModuleId, Boolean(activeModuleId));
+      setData(current => playWithPet(current, new Date()));
+      return;
+    }
+
+    if (input === 's') {
+      setSelectedModule('pet', setSelectedModuleIndex, setActiveModuleId, Boolean(activeModuleId));
+      setData(current => petCat(current, new Date()));
+      return;
+    }
+
+    if (input === 'c') {
+      setSelectedModule('pet', setSelectedModuleIndex, setActiveModuleId, Boolean(activeModuleId));
+      setData(current => cleanPet(current, new Date()));
+      return;
+    }
+
+    if (input === 'o') {
+      setSelectedModule('pet', setSelectedModuleIndex, setActiveModuleId, Boolean(activeModuleId));
+      setEntryMode('petToy');
+      setEntryText(data.features.pet.favoriteToy);
+      return;
+    }
+
     if (input === 'y') {
       setSelectedModule('repoGarden', setSelectedModuleIndex, setActiveModuleId, Boolean(activeModuleId));
       setEntryMode('repoDir');
@@ -516,13 +552,14 @@ function setSelectedModule(
   }
 }
 
-function formatEntryPrompt(entryMode: 'add' | 'edit' | 'note' | 'location' | 'focusMinutes' | 'breakMinutes' | 'petName' | 'repoDir'): string {
+function formatEntryPrompt(entryMode: 'add' | 'edit' | 'note' | 'location' | 'focusMinutes' | 'breakMinutes' | 'petName' | 'petToy' | 'repoDir'): string {
   if (entryMode === 'add') return 'new task';
   if (entryMode === 'edit') return 'edit task';
   if (entryMode === 'note') return 'pocket note';
   if (entryMode === 'focusMinutes') return 'focus minutes';
   if (entryMode === 'breakMinutes') return 'break minutes';
   if (entryMode === 'petName') return 'pet name';
+  if (entryMode === 'petToy') return 'favorite toy';
   if (entryMode === 'repoDir') return 'repo scan dir';
   return 'location name';
 }
