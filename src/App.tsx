@@ -1,13 +1,9 @@
 import React, {useEffect, useState} from 'react';
 import {Box, Text, useApp, useInput} from 'ink';
 import {Header} from './components/Header.js';
-import {TasksPanel} from './components/TasksPanel.js';
-import {FocusPanel} from './components/FocusPanel.js';
-import {WeatherPanel} from './components/WeatherPanel.js';
-import {NotePanel} from './components/NotePanel.js';
 import {Footer} from './components/Footer.js';
 import {HelpOverlay} from './components/HelpOverlay.js';
-import {Layout} from './components/Layout.js';
+import {HomeScreen} from './screens/HomeScreen.js';
 import {useClock} from './hooks/useClock.js';
 import {useTerminalSize} from './hooks/useTerminalSize.js';
 import {
@@ -30,6 +26,8 @@ import {
 import type {KinokoData} from './state/schema.js';
 import {colors, themes, type ThemeName} from './theme/colors.js';
 import {mascots} from './theme/ascii.js';
+import {getModule, moduleIds} from './modules/registry.js';
+import type {ModuleId, ModuleContext} from './modules/types.js';
 import {
   hasWeatherLocation,
   loadConfig,
@@ -46,8 +44,6 @@ import {
   shouldRefreshWeather
 } from './weather/openMeteo.js';
 
-const panels = ['tasks', 'focus', 'weather', 'note'] as const;
-
 type AppProps = {
   dataPath?: string;
 };
@@ -59,7 +55,8 @@ export function App({dataPath}: AppProps) {
   const compact = columns < 84;
   const [data, setData] = useState<KinokoData>(() => loadData(dataPath));
   const [weatherStatus, setWeatherStatus] = useState<string | null>(null);
-  const [activePanel, setActivePanel] = useState(0);
+  const [selectedModuleIndex, setSelectedModuleIndex] = useState(0);
+  const [activeModuleId, setActiveModuleId] = useState<ModuleId | null>(null);
   const [selectedTaskIndex, setSelectedTaskIndex] = useState(0);
   const [entryMode, setEntryMode] = useState<'add' | 'edit' | 'note' | 'location' | 'focusMinutes' | 'breakMinutes' | null>(null);
   const [entryText, setEntryText] = useState('');
@@ -206,6 +203,11 @@ export function App({dataPath}: AppProps) {
       return;
     }
 
+    if ((key.escape || key.backspace || key.delete) && activeModuleId) {
+      setActiveModuleId(null);
+      return;
+    }
+
     if (input === 'q' || key.escape) {
       exit();
       return;
@@ -222,44 +224,97 @@ export function App({dataPath}: AppProps) {
     }
 
     if (key.tab) {
-      setActivePanel(index => (index + 1) % panels.length);
+      setSelectedModuleIndex(index => {
+        const nextIndex = (index + 1) % moduleIds.length;
+        if (activeModuleId) {
+          setActiveModuleId(moduleIds[nextIndex]!);
+        }
+
+        return nextIndex;
+      });
       return;
     }
 
     if (input === '\u001b[Z') {
-      setActivePanel(index => (index - 1 + panels.length) % panels.length);
+      setSelectedModuleIndex(index => {
+        const nextIndex = (index - 1 + moduleIds.length) % moduleIds.length;
+        if (activeModuleId) {
+          setActiveModuleId(moduleIds[nextIndex]!);
+        }
+
+        return nextIndex;
+      });
+      return;
+    }
+
+    if (!activeModuleId) {
+      if (key.upArrow) {
+        setSelectedModuleIndex(index => Math.max(0, index - 1));
+        return;
+      }
+
+      if (key.downArrow) {
+        setSelectedModuleIndex(index => Math.min(moduleIds.length - 1, index + 1));
+        return;
+      }
+
+      if (key.return) {
+        setActiveModuleId(moduleIds[selectedModuleIndex]!);
+        return;
+      }
+    }
+
+    const selectedModuleId = activeModuleId ?? moduleIds[selectedModuleIndex]!;
+
+    if (input === '1') {
+      setSelectedModule('tasks', setSelectedModuleIndex, setActiveModuleId, Boolean(activeModuleId));
+      return;
+    }
+
+    if (input === '2') {
+      setSelectedModule('focus', setSelectedModuleIndex, setActiveModuleId, Boolean(activeModuleId));
+      return;
+    }
+
+    if (input === '3') {
+      setSelectedModule('weather', setSelectedModuleIndex, setActiveModuleId, Boolean(activeModuleId));
+      return;
+    }
+
+    if (input === '4') {
+      setSelectedModule('note', setSelectedModuleIndex, setActiveModuleId, Boolean(activeModuleId));
       return;
     }
 
     if (input === 'l') {
-      setActivePanel(panels.indexOf('weather'));
+      setSelectedModule('weather', setSelectedModuleIndex, setActiveModuleId, Boolean(activeModuleId));
       setEntryMode('location');
       setEntryText('');
       return;
     }
 
     if (input === 'f') {
-      setActivePanel(panels.indexOf('focus'));
+      setSelectedModule('focus', setSelectedModuleIndex, setActiveModuleId, Boolean(activeModuleId));
       setEntryMode('focusMinutes');
       setEntryText(String(loadConfig().focus.focusMinutes));
       return;
     }
 
     if (input === 'g') {
-      setActivePanel(panels.indexOf('focus'));
+      setSelectedModule('focus', setSelectedModuleIndex, setActiveModuleId, Boolean(activeModuleId));
       setEntryMode('breakMinutes');
       setEntryText(String(loadConfig().focus.breakMinutes));
       return;
     }
 
     if (input === 'n') {
-      setActivePanel(panels.indexOf('note'));
+      setSelectedModule('note', setSelectedModuleIndex, setActiveModuleId, Boolean(activeModuleId));
       setEntryMode('note');
       setEntryText(today.note);
       return;
     }
 
-    if (panels[activePanel] === 'tasks') {
+    if (selectedModuleId === 'tasks') {
       if (key.upArrow) {
         setSelectedTaskIndex(index => Math.max(0, index - 1));
         return;
@@ -329,27 +384,35 @@ export function App({dataPath}: AppProps) {
     }
   });
 
+  const activeModule = activeModuleId ? getModule(activeModuleId) : null;
+  const moduleContext: ModuleContext = {
+    data,
+    today,
+    now,
+    config,
+    palette,
+    selectedTaskIndex,
+    weatherStatus,
+    focusConfigStatus
+  };
+
   return (
     <Box flexDirection="column" paddingX={1}>
       <Box borderStyle="round" borderColor={palette.shell} flexDirection="column" paddingX={1}>
         <Header now={now} weather={data.weather} />
         {showHelp && <HelpOverlay palette={palette} />}
-        <Layout compact={compact}>
-          <TasksPanel
-            tasks={today.tasks}
-            selectedIndex={selectedTaskIndex}
-            active={panels[activePanel] === 'tasks'}
+        {activeModule ? (
+          <Box flexDirection="column">
+            <Text color={colors.muted}>module · esc/backspace home</Text>
+            <activeModule.Screen {...moduleContext} />
+          </Box>
+        ) : (
+          <HomeScreen
+            {...moduleContext}
+            compact={compact}
+            selectedModuleIndex={selectedModuleIndex}
           />
-          <FocusPanel
-            record={today}
-            now={now}
-            active={panels[activePanel] === 'focus'}
-            config={config.focus}
-            status={focusConfigStatus}
-          />
-          <WeatherPanel data={data} active={panels[activePanel] === 'weather'} status={weatherStatus} />
-        </Layout>
-        <NotePanel record={today} active={panels[activePanel] === 'note'} />
+        )}
         {entryMode && (
           <Box>
             <Text color={colors.amber}>
@@ -362,6 +425,18 @@ export function App({dataPath}: AppProps) {
       <Text color={colors.muted}>data: {dataPath ?? getDataPath()}</Text>
     </Box>
   );
+}
+
+function setSelectedModule(
+  moduleId: ModuleId,
+  setSelectedModuleIndex: React.Dispatch<React.SetStateAction<number>>,
+  setActiveModuleId: React.Dispatch<React.SetStateAction<ModuleId | null>>,
+  keepActive: boolean
+): void {
+  setSelectedModuleIndex(moduleIds.indexOf(moduleId));
+  if (keepActive) {
+    setActiveModuleId(moduleId);
+  }
 }
 
 function formatEntryPrompt(entryMode: 'add' | 'edit' | 'note' | 'location' | 'focusMinutes' | 'breakMinutes'): string {
