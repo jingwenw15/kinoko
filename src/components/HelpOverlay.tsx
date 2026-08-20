@@ -17,7 +17,7 @@ export function HelpOverlay({palette = colors}: HelpOverlayProps) {
       <Text color={palette.cream}>weather: l set location by name</Text>
       <Text color={palette.cream}>note: n edit pocket note</Text>
       <Text color={palette.cream}>pet: p open · x feed · z play · s scritch · c clean · m rename · o toy</Text>
-      <Text color={palette.cream}>repo garden: v open · y add scan dir · u remove scan dir</Text>
+      <Text color={palette.cream}>repo garden: v open · ↑/↓ repos · [/ ] scan dirs · y add dir · u remove dir</Text>
       <Text color={palette.cream}>themes: t cycle cozy/pixel/zen</Text>
       <Text color={palette.muted}>press ? or escape to close · q quits app</Text>
     </Box>

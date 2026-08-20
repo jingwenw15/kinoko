@@ -35,6 +35,7 @@ import {
 } from './config.js';
 import {fetchOpenMeteoWeather, geocodeLocation, markWeatherStale} from './weather/openMeteo.js';
 import {parseTaskFile} from './integrations/tasks.js';
+import {formatRepoSummary, scanRepos} from './repoGarden/scanner.js';
 
 const [, , command, ...args] = process.argv;
 
@@ -77,6 +78,9 @@ async function main(): Promise<void> {
     case 'focus':
       runFocusCommand(args);
       break;
+    case 'repos':
+      runReposCommand();
+      break;
     case 'config':
       runConfigCommand(args);
       break;
@@ -92,6 +96,29 @@ async function main(): Promise<void> {
       console.error(`unknown command: ${command}`);
       printHelp();
       process.exitCode = 1;
+  }
+}
+
+function runReposCommand(): void {
+  const data = loadData();
+  const dirs = data.features.repoGarden.scanDirs;
+  const repos = scanRepos(dirs);
+
+  if (dirs.length === 0) {
+    console.log('no repo garden scan dirs configured');
+    console.log('open kinoko, press v, then y to add a directory');
+    return;
+  }
+
+  if (repos.length === 0) {
+    console.log(`no git repos found in ${dirs.length} scan dir${dirs.length === 1 ? '' : 's'}`);
+    return;
+  }
+
+  for (const repo of repos) {
+    const dirty = repo.dirty ? ' *' : '';
+    console.log(`${formatRepoSummary(repo)}${dirty}`);
+    console.log(`  ${repo.path}`);
   }
 }
 
@@ -302,6 +329,7 @@ usage:
   kinoko focus resume             resume paused segment
   kinoko focus reset              reset current segment
   kinoko focus status             show focus status
+  kinoko repos                    list repo garden status
   kinoko config focus-minutes <n> set default focus length
   kinoko config break-minutes <n> set default break length
   kinoko config theme <name>      set theme: cozy, pixel, zen

@@ -26,6 +26,7 @@ import {
   setNote,
   setPetToy,
   selectRepoGardenDir,
+  selectRepoGardenRepo,
   startBreak,
   saveData,
   startFocus,
@@ -52,6 +53,7 @@ import {
   markWeatherStale,
   shouldRefreshWeather
 } from './weather/openMeteo.js';
+import {scanRepos} from './repoGarden/scanner.js';
 
 type AppProps = {
   dataPath?: string;
@@ -417,11 +419,23 @@ export function App({dataPath}: AppProps) {
 
     if (selectedModuleId === 'repoGarden') {
       if (key.upArrow) {
-        setData(current => selectRepoGardenDir(current, -1));
+        const repoCount = scanRepos(data.features.repoGarden.scanDirs).length;
+        setData(current => selectRepoGardenRepo(current, -1, repoCount));
         return;
       }
 
       if (key.downArrow) {
+        const repoCount = scanRepos(data.features.repoGarden.scanDirs).length;
+        setData(current => selectRepoGardenRepo(current, 1, repoCount));
+        return;
+      }
+
+      if (input === '[') {
+        setData(current => selectRepoGardenDir(current, -1));
+        return;
+      }
+
+      if (input === ']') {
         setData(current => selectRepoGardenDir(current, 1));
         return;
       }

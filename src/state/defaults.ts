@@ -48,6 +48,7 @@ export const defaultPet: Pet = {
 
 export const defaultRepoGarden: RepoGarden = {
   scanDirs: [],
+  selectedScanDirIndex: 0,
   selectedRepoIndex: 0
 };
 

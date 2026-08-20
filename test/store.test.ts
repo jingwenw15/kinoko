@@ -21,6 +21,7 @@ import {
   resetCurrentFocus,
   resumeFocus,
   selectRepoGardenDir,
+  selectRepoGardenRepo,
   saveData,
   setNote,
   setPetToy,
@@ -227,9 +228,17 @@ describe('store', () => {
     const removed = removeSelectedRepoGardenDir(selected);
 
     expect(withDirs.features.repoGarden.scanDirs).toEqual(['/tmp/a', '/tmp/b']);
-    expect(selected.features.repoGarden.selectedRepoIndex).toBe(1);
+    expect(selected.features.repoGarden.selectedScanDirIndex).toBe(1);
     expect(removed.features.repoGarden.scanDirs).toEqual(['/tmp/a']);
+    expect(removed.features.repoGarden.selectedScanDirIndex).toBe(0);
     expect(removed.features.repoGarden.selectedRepoIndex).toBe(0);
+  });
+
+  it('selects repo garden repos separately from scan dirs', () => {
+    const withRepo = selectRepoGardenRepo(defaultData, 1, 3);
+
+    expect(withRepo.features.repoGarden.selectedRepoIndex).toBe(1);
+    expect(withRepo.features.repoGarden.selectedScanDirIndex).toBe(0);
   });
 
   it('migrates v3 data without repo garden state', () => {
@@ -247,6 +256,10 @@ describe('store', () => {
       'utf8'
     );
 
-    expect(loadData(path).features.repoGarden).toEqual({scanDirs: [], selectedRepoIndex: 0});
+    expect(loadData(path).features.repoGarden).toEqual({
+      scanDirs: [],
+      selectedScanDirIndex: 0,
+      selectedRepoIndex: 0
+    });
   });
 });

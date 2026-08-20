@@ -65,6 +65,7 @@ export const PetSchema = z.object({
 
 export const RepoGardenSchema = z.object({
   scanDirs: z.array(z.string().min(1)),
+  selectedScanDirIndex: z.number().int().nonnegative(),
   selectedRepoIndex: z.number().int().nonnegative()
 });
 

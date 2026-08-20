@@ -259,7 +259,7 @@ export function addRepoGardenDir(data: KinokoData, dir: string): KinokoData {
 }
 
 export function removeSelectedRepoGardenDir(data: KinokoData): KinokoData {
-  const index = data.features.repoGarden.selectedRepoIndex;
+  const index = data.features.repoGarden.selectedScanDirIndex;
   return {
     ...data,
     features: {
@@ -267,7 +267,8 @@ export function removeSelectedRepoGardenDir(data: KinokoData): KinokoData {
       repoGarden: {
         ...data.features.repoGarden,
         scanDirs: data.features.repoGarden.scanDirs.filter((_, dirIndex) => dirIndex !== index),
-        selectedRepoIndex: Math.max(0, Math.min(index, data.features.repoGarden.scanDirs.length - 2))
+        selectedScanDirIndex: Math.max(0, Math.min(index, data.features.repoGarden.scanDirs.length - 2)),
+        selectedRepoIndex: 0
       }
     }
   };
@@ -275,6 +276,20 @@ export function removeSelectedRepoGardenDir(data: KinokoData): KinokoData {
 
 export function selectRepoGardenDir(data: KinokoData, direction: -1 | 1): KinokoData {
   const maxIndex = Math.max(0, data.features.repoGarden.scanDirs.length - 1);
+  return {
+    ...data,
+    features: {
+      ...data.features,
+      repoGarden: {
+        ...data.features.repoGarden,
+        selectedScanDirIndex: Math.max(0, Math.min(maxIndex, data.features.repoGarden.selectedScanDirIndex + direction))
+      }
+    }
+  };
+}
+
+export function selectRepoGardenRepo(data: KinokoData, direction: -1 | 1, repoCount: number): KinokoData {
+  const maxIndex = Math.max(0, repoCount - 1);
   return {
     ...data,
     features: {
@@ -379,7 +394,7 @@ function parseData(raw: unknown, now: Date): KinokoData {
       ...v3WithoutRepoGarden.data,
       features: {
         pet: normalizePet(v3WithoutRepoGarden.data.features.pet),
-        repoGarden: v3WithoutRepoGarden.data.features.repoGarden ?? defaultRepoGarden
+        repoGarden: normalizeRepoGarden(v3WithoutRepoGarden.data.features.repoGarden)
       }
     };
   }
@@ -447,7 +462,7 @@ function normalizeData(data: KinokoData): KinokoData {
     features: {
       ...data.features,
       pet,
-      repoGarden: data.features.repoGarden ?? defaultRepoGarden
+      repoGarden: normalizeRepoGarden(data.features.repoGarden)
     }
   };
 }
@@ -463,6 +478,15 @@ function normalizePet(pet: Partial<Pet>): Pet {
 
 function pushPetLog(pet: Pet, entry: string): string[] {
   return [entry, ...pet.log].slice(0, 5);
+}
+
+function normalizeRepoGarden(repoGarden: Partial<KinokoData['features']['repoGarden']> | undefined): KinokoData['features']['repoGarden'] {
+  return {
+    ...defaultRepoGarden,
+    ...repoGarden,
+    selectedScanDirIndex: repoGarden?.selectedScanDirIndex ?? 0,
+    selectedRepoIndex: repoGarden?.selectedRepoIndex ?? 0
+  };
 }
 
 function formatPetTime(date: Date): string {
@@ -608,9 +632,10 @@ const legacyV3DataSchema = z.object({
   weather: WeatherSchema,
   features: z.object({
     pet: legacyPetSchema,
-    repoGarden: z
+        repoGarden: z
       .object({
         scanDirs: z.array(z.string().min(1)),
+        selectedScanDirIndex: z.number().int().nonnegative().optional(),
         selectedRepoIndex: z.number().int().nonnegative()
       })
       .optional()
