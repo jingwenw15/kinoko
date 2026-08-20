@@ -7,12 +7,13 @@ import {
   DailyRecordSchema,
   FocusStateSchema,
   KinokoDataSchema,
+  PetSchema,
   WeatherSchema,
   type DailyRecord,
   type FocusState,
   type KinokoData
 } from './schema.js';
-import {defaultDailyRecord, defaultData, defaultWeather} from './defaults.js';
+import {defaultDailyRecord, defaultData, defaultPet, defaultWeather} from './defaults.js';
 
 const dataPath = getKinokoDataPath();
 
@@ -125,6 +126,40 @@ export function toggleTask(record: DailyRecord, taskIdOrIndex: string): DailyRec
   };
 }
 
+export function renamePet(data: KinokoData, name: string): KinokoData {
+  const cleanName = name.trim();
+  if (!cleanName) {
+    return data;
+  }
+
+  return {
+    ...data,
+    features: {
+      ...data.features,
+      pet: {
+        ...data.features.pet,
+        name: cleanName.slice(0, 32)
+      }
+    }
+  };
+}
+
+export function feedPet(data: KinokoData, now = new Date()): KinokoData {
+  return {
+    ...data,
+    features: {
+      ...data.features,
+      pet: {
+        ...data.features.pet,
+        hunger: Math.max(0, data.features.pet.hunger - 25),
+        happiness: Math.min(100, data.features.pet.happiness + 10),
+        fedCount: data.features.pet.fedCount + 1,
+        lastFedAt: now.toISOString()
+      }
+    }
+  };
+}
+
 export function pauseFocus(record: DailyRecord, now = new Date()): DailyRecord {
   if (
     !record.focus.activeStartedAt ||
@@ -208,13 +243,25 @@ export function getFocusRemainingSeconds(record: DailyRecord, now = new Date()):
 function parseData(raw: unknown, now: Date): KinokoData {
   const versioned = KinokoDataSchema.safeParse(raw);
   if (versioned.success) {
-    return versioned.data;
+    return normalizeData(versioned.data);
+  }
+
+  const v2Current = legacyCurrentV2DataSchema.safeParse(raw);
+  if (v2Current.success) {
+    return {
+      version: 3,
+      days: v2Current.data.days,
+      weather: v2Current.data.weather,
+      features: {
+        pet: defaultPet
+      }
+    };
   }
 
   const v2Legacy = legacyV2DataSchema.safeParse(raw);
   if (v2Legacy.success) {
     return {
-      ...v2Legacy.data,
+      version: 3,
       days: Object.fromEntries(
         Object.entries(v2Legacy.data.days).map(([key, record]) => [
           key,
@@ -223,7 +270,11 @@ function parseData(raw: unknown, now: Date): KinokoData {
             focus: migrateFocusState(record.focus)
           }
         ])
-      )
+      ),
+      weather: v2Legacy.data.weather,
+      features: {
+        pet: defaultPet
+      }
     };
   }
 
@@ -233,7 +284,7 @@ function parseData(raw: unknown, now: Date): KinokoData {
   }
 
   return {
-    version: 2,
+    version: 3,
     days: {
       [todayKey(now)]: {
         tasks: legacy.data.tasks,
@@ -241,7 +292,23 @@ function parseData(raw: unknown, now: Date): KinokoData {
         note: legacy.data.note
       }
     },
-    weather: legacy.data.weather ?? defaultWeather
+    weather: legacy.data.weather ?? defaultWeather,
+    features: {
+      pet: defaultPet
+    }
+  };
+}
+
+function normalizeData(data: KinokoData): KinokoData {
+  return {
+    ...data,
+    features: {
+      ...data.features,
+      pet: {
+        ...data.features.pet,
+        species: 'cat'
+      }
+    }
   };
 }
 
@@ -358,7 +425,18 @@ const legacyFlatDataSchema = z.object({
   weather: WeatherSchema
 });
 
-const legacyV2DataSchema = KinokoDataSchema.extend({
+const legacyCurrentV2DataSchema = z.object({
+  version: z.literal(2),
+  days: z.record(DailyRecordSchema),
+  weather: WeatherSchema,
+  features: z
+    .object({
+      pet: PetSchema
+    })
+    .optional()
+});
+
+const legacyV2DataSchema = legacyCurrentV2DataSchema.extend({
   days: z.record(legacyDailyRecordSchema)
 });
 

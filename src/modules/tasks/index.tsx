@@ -9,7 +9,7 @@ function TasksHomeCard(props: ModuleContext & {active: boolean}) {
   const openTasks = props.today.tasks.filter(task => !task.done).length;
 
   return (
-    <Panel title="tasks" active={props.active} palette={props.palette}>
+    <Panel title="tasks" active={props.active} palette={props.palette} grow={false}>
       <Text color={colors.cream}>{openTasks} open · {props.today.tasks.length} total</Text>
       <Text color={colors.muted}>enter opens · a/e/d manage</Text>
     </Panel>

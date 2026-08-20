@@ -6,11 +6,12 @@ type PanelProps = {
   title: string;
   active?: boolean;
   minWidth?: number;
+  grow?: boolean;
   palette?: ThemePalette;
   children: ReactNode;
 };
 
-export function Panel({title, active = false, minWidth = 22, palette = colors, children}: PanelProps) {
+export function Panel({title, active = false, minWidth = 22, grow = true, palette = colors, children}: PanelProps) {
   return (
     <Box
       borderStyle="round"
@@ -19,7 +20,7 @@ export function Panel({title, active = false, minWidth = 22, palette = colors, c
       paddingX={1}
       paddingY={0}
       minWidth={minWidth}
-      flexGrow={1}
+      flexGrow={grow ? 1 : 0}
     >
       <Text color={active ? palette.cap : palette.cream}>{title}</Text>
       {children}

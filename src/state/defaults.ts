@@ -1,4 +1,4 @@
-import type {DailyRecord, KinokoConfig, KinokoData, Weather} from './schema.js';
+import type {DailyRecord, KinokoConfig, KinokoData, Pet, Weather} from './schema.js';
 
 export const defaultDailyRecord: DailyRecord = {
   tasks: [
@@ -27,10 +27,22 @@ export const defaultWeather: Weather = {
   stale: true
 };
 
+export const defaultPet: Pet = {
+  name: 'kinoko',
+  species: 'cat',
+  hunger: 35,
+  happiness: 70,
+  fedCount: 0,
+  lastFedAt: null
+};
+
 export const defaultData: KinokoData = {
-  version: 2,
+  version: 3,
   days: {},
-  weather: defaultWeather
+  weather: defaultWeather,
+  features: {
+    pet: defaultPet
+  }
 };
 
 export const defaultConfig: KinokoConfig = {

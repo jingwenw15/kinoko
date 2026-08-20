@@ -44,6 +44,15 @@ export const WeatherSchema = z.object({
   attribution: z.string().optional()
 });
 
+export const PetSchema = z.object({
+  name: z.string().min(1),
+  species: z.enum(['cat', 'mushroom']),
+  hunger: z.number().int().min(0).max(100),
+  happiness: z.number().int().min(0).max(100),
+  fedCount: z.number().int().nonnegative(),
+  lastFedAt: z.string().datetime().nullable()
+});
+
 export const KinokoConfigSchema = z.object({
   version: z.literal(1),
   weather: z.object({
@@ -64,9 +73,12 @@ export const KinokoConfigSchema = z.object({
 });
 
 export const KinokoDataSchema = z.object({
-  version: z.literal(2),
+  version: z.literal(3),
   days: z.record(DailyRecordSchema),
-  weather: WeatherSchema
+  weather: WeatherSchema,
+  features: z.object({
+    pet: PetSchema
+  })
 });
 
 export type Task = z.infer<typeof TaskSchema>;
@@ -74,5 +86,6 @@ export type FocusSession = z.infer<typeof FocusSessionSchema>;
 export type FocusState = z.infer<typeof FocusStateSchema>;
 export type DailyRecord = z.infer<typeof DailyRecordSchema>;
 export type Weather = z.infer<typeof WeatherSchema>;
+export type Pet = z.infer<typeof PetSchema>;
 export type KinokoConfig = z.infer<typeof KinokoConfigSchema>;
 export type KinokoData = z.infer<typeof KinokoDataSchema>;

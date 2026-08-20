@@ -6,11 +6,13 @@ import {
   addTask,
   deleteTask,
   editTask,
+  feedPet,
   getDisplayedFocusMinutes,
   getFocusRemainingSeconds,
   getToday,
   loadData,
   pauseFocus,
+  renamePet,
   resetCurrentFocus,
   resumeFocus,
   saveData,
@@ -61,12 +63,13 @@ describe('store', () => {
     const data = loadData(path);
     const today = getToday(data);
 
-    expect(data.version).toBe(2);
+    expect(data.version).toBe(3);
     expect(today.tasks[0]?.id).toBe('legacy-task');
     expect(today.focus.todayMinutes).toBe(12);
     expect(today.focus.status).toBe('idle');
     expect(today.focus.sessions).toEqual([]);
     expect(today.note).toBe('old note');
+    expect(data.features.pet.name).toBe('kinoko');
   });
 
   it('creates separate records per day', () => {
@@ -130,5 +133,32 @@ describe('store', () => {
     expect(paused.focus.todayMinutes).toBe(0);
     expect(paused.focus.elapsedSeconds).toBe(250);
     expect(paused.focus.sessions).toEqual([]);
+  });
+
+  it('renames and feeds the pet', () => {
+    const fedAt = new Date('2026-08-19T19:00:00.000Z');
+    const renamed = renamePet(defaultData, 'Mochi');
+    const fed = feedPet(renamed, fedAt);
+
+    expect(renamed.features.pet.name).toBe('Mochi');
+    expect(fed.features.pet.hunger).toBe(10);
+    expect(fed.features.pet.happiness).toBe(80);
+    expect(fed.features.pet.fedCount).toBe(1);
+    expect(fed.features.pet.lastFedAt).toBe(fedAt.toISOString());
+  });
+
+  it('normalizes old pet species to cat', () => {
+    const path = tempDataPath();
+    saveData({
+      ...defaultData,
+      features: {
+        pet: {
+          ...defaultData.features.pet,
+          species: 'mushroom'
+        }
+      }
+    }, path);
+
+    expect(loadData(path).features.pet.species).toBe('cat');
   });
 });

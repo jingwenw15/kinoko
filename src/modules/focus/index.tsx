@@ -12,7 +12,7 @@ function FocusHomeCard(props: ModuleContext & {active: boolean}) {
   const seconds = remaining % 60;
 
   return (
-    <Panel title="focus" active={props.active} palette={props.palette}>
+    <Panel title="focus" active={props.active} palette={props.palette} grow={false}>
       <Text color={colors.cream}>
         {props.today.focus.status} · {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')} left
       </Text>

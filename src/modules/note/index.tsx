@@ -7,7 +7,7 @@ import type {KinokoModule, ModuleContext} from '../types.js';
 
 function NoteHomeCard(props: ModuleContext & {active: boolean}) {
   return (
-    <Panel title="pocket note" active={props.active} palette={props.palette}>
+    <Panel title="pocket note" active={props.active} palette={props.palette} grow={false}>
       <Text color={colors.cream}>{props.today.note || 'no note for today'}</Text>
       <Text color={colors.muted}>press n to edit</Text>
     </Panel>

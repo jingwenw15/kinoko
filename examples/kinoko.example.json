@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "days": {
     "2026-08-19": {
       "tasks": [
@@ -38,5 +38,15 @@
     "conditionIcon": "☁",
     "source": "mock",
     "stale": true
+  },
+  "features": {
+    "pet": {
+      "name": "kinoko",
+      "species": "cat",
+      "hunger": 35,
+      "happiness": 70,
+      "fedCount": 0,
+      "lastFedAt": null
+    }
   }
 }

@@ -9,7 +9,7 @@ function WeatherHomeCard(props: ModuleContext & {active: boolean}) {
   const weather = props.data.weather;
 
   return (
-    <Panel title="weather" active={props.active} palette={props.palette}>
+    <Panel title="weather" active={props.active} palette={props.palette} grow={false}>
       <Text color={colors.blue}>{weather.conditionIcon} {weather.temperature} · {weather.label}</Text>
       <Text color={colors.muted}>{weather.locationName || 'set location with l'}</Text>
     </Panel>

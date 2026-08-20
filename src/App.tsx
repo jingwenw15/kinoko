@@ -10,12 +10,14 @@ import {
   addTask,
   deleteTask,
   editTask,
+  feedPet,
   getDataPath,
   getToday,
   loadData,
   pauseFocus,
   resetCurrentFocus,
   resumeFocus,
+  renamePet,
   setNote,
   startBreak,
   saveData,
@@ -58,7 +60,7 @@ export function App({dataPath}: AppProps) {
   const [selectedModuleIndex, setSelectedModuleIndex] = useState(0);
   const [activeModuleId, setActiveModuleId] = useState<ModuleId | null>(null);
   const [selectedTaskIndex, setSelectedTaskIndex] = useState(0);
-  const [entryMode, setEntryMode] = useState<'add' | 'edit' | 'note' | 'location' | 'focusMinutes' | 'breakMinutes' | null>(null);
+  const [entryMode, setEntryMode] = useState<'add' | 'edit' | 'note' | 'location' | 'focusMinutes' | 'breakMinutes' | 'petName' | null>(null);
   const [entryText, setEntryText] = useState('');
   const [focusConfigStatus, setFocusConfigStatus] = useState<string | null>(null);
   const [showHelp, setShowHelp] = useState(false);
@@ -165,6 +167,13 @@ export function App({dataPath}: AppProps) {
 
         if (mode === 'note') {
           setData(current => updateToday(current, record => setNote(record, text)));
+          setEntryMode(null);
+          setEntryText('');
+          return;
+        }
+
+        if (mode === 'petName') {
+          setData(current => renamePet(current, text));
           setEntryMode(null);
           setEntryText('');
           return;
@@ -286,6 +295,16 @@ export function App({dataPath}: AppProps) {
       return;
     }
 
+    if (input === '5') {
+      setSelectedModule('pet', setSelectedModuleIndex, setActiveModuleId, Boolean(activeModuleId));
+      return;
+    }
+
+    if (input === 'p') {
+      setSelectedModule('pet', setSelectedModuleIndex, setActiveModuleId, Boolean(activeModuleId));
+      return;
+    }
+
     if (input === 'l') {
       setSelectedModule('weather', setSelectedModuleIndex, setActiveModuleId, Boolean(activeModuleId));
       setEntryMode('location');
@@ -311,6 +330,19 @@ export function App({dataPath}: AppProps) {
       setSelectedModule('note', setSelectedModuleIndex, setActiveModuleId, Boolean(activeModuleId));
       setEntryMode('note');
       setEntryText(today.note);
+      return;
+    }
+
+    if (input === 'm') {
+      setSelectedModule('pet', setSelectedModuleIndex, setActiveModuleId, Boolean(activeModuleId));
+      setEntryMode('petName');
+      setEntryText(data.features.pet.name);
+      return;
+    }
+
+    if (input === 'x') {
+      setSelectedModule('pet', setSelectedModuleIndex, setActiveModuleId, Boolean(activeModuleId));
+      setData(current => feedPet(current, new Date()));
       return;
     }
 
@@ -439,12 +471,13 @@ function setSelectedModule(
   }
 }
 
-function formatEntryPrompt(entryMode: 'add' | 'edit' | 'note' | 'location' | 'focusMinutes' | 'breakMinutes'): string {
+function formatEntryPrompt(entryMode: 'add' | 'edit' | 'note' | 'location' | 'focusMinutes' | 'breakMinutes' | 'petName'): string {
   if (entryMode === 'add') return 'new task';
   if (entryMode === 'edit') return 'edit task';
   if (entryMode === 'note') return 'pocket note';
   if (entryMode === 'focusMinutes') return 'focus minutes';
   if (entryMode === 'breakMinutes') return 'break minutes';
+  if (entryMode === 'petName') return 'pet name';
   return 'location name';
 }
 
