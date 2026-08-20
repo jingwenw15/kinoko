@@ -41,9 +41,12 @@ npm run build
 npm start
 ```
 
+Local runtime files are created under `.kinoko/`, which is ignored by git.
+
 ## Controls
 
 - `tab`: switch active panel
+- `?`: open or close help
 - `↑` / `↓`: move through tasks
 - `enter`: toggle selected task
 - `space`: start or pause focus timer
@@ -51,34 +54,39 @@ npm start
 - `f`: configure default focus minutes
 - `g`: configure default break minutes
 - `l`: set weather location by name
+- `t`: cycle theme
 - `r`: reset current focus session
 - `q`: quit
 
 ## Data
 
-V1 is local and mock-first. State is stored in:
+Runtime state is local and ignored by git. By default, Kinoko writes:
 
 ```txt
-data/kinoko.json
+.kinoko/kinoko.json
+.kinoko/config.json
 ```
 
-The file contains tasks, focus totals, mock weather, and the pocket note.
+Set `KINOKO_HOME=/some/path` to use a different state directory.
+
+The state file contains tasks, focus totals, cached weather, and the pocket note.
 Tasks, focus, and notes are stored under daily records keyed by `YYYY-MM-DD`, so a new day gets a separate dashboard instead of overwriting yesterday.
 
-Weather config is stored in:
+Tracked example files live in:
 
 ```txt
-data/config.json
+examples/kinoko.example.json
+examples/config.example.json
 ```
 
 Kinoko uses Open-Meteo for weather. It does not require an API key. Weather is cached for 30 minutes and falls back to cached data if refresh fails.
 
-Focus defaults are also stored in `data/config.json`:
+Focus defaults are also stored in `.kinoko/config.json`:
 
 - focus sessions: 25 minutes
 - breaks: 5 minutes
 
-Fresh installs start with `0` focus minutes used. Focus history is stored per day in `data/kinoko.json`. Resetting the current focus segment does not delete completed session history.
+Fresh installs start with `0` focus minutes used. Focus history is stored per day in `.kinoko/kinoko.json`. Resetting the current focus segment does not delete completed session history.
 
 ## CLI commands
 
@@ -102,9 +110,16 @@ node dist/cli.js focus reset
 node dist/cli.js focus status
 node dist/cli.js config focus-minutes 45
 node dist/cli.js config break-minutes 10
+node dist/cli.js config theme pixel
 ```
 
 When installed as a package, the same commands are available through `kinoko`.
+
+For isolated testing:
+
+```sh
+KINOKO_HOME="$(mktemp -d)" node dist/cli.js add "scratch task"
+```
 
 ## Checks
 

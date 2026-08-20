@@ -56,6 +56,9 @@ export const KinokoConfigSchema = z.object({
   focus: z.object({
     focusMinutes: z.number().int().positive(),
     breakMinutes: z.number().int().positive()
+  }),
+  ui: z.object({
+    theme: z.enum(['cozy', 'pixel', 'zen'])
   })
 });
 

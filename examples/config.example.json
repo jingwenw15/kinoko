@@ -2,14 +2,17 @@
   "version": 1,
   "weather": {
     "provider": "open-meteo",
-    "latitude": 47.67399,
-    "longitude": -122.12151,
-    "locationName": "Redmond, Washington, United States",
+    "latitude": null,
+    "longitude": null,
+    "locationName": "",
     "temperatureUnit": "fahrenheit",
     "windSpeedUnit": "mph"
   },
   "focus": {
-    "focusMinutes": 30,
+    "focusMinutes": 25,
     "breakMinutes": 5
+  },
+  "ui": {
+    "theme": "cozy"
   }
 }

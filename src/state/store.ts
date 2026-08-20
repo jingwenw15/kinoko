@@ -1,7 +1,8 @@
 import {existsSync, mkdirSync, readFileSync, writeFileSync} from 'node:fs';
-import {dirname, resolve} from 'node:path';
+import {dirname} from 'node:path';
 import {format} from 'date-fns';
 import {z} from 'zod';
+import {getKinokoDataPath} from '../paths.js';
 import {
   DailyRecordSchema,
   FocusStateSchema,
@@ -13,7 +14,7 @@ import {
 } from './schema.js';
 import {defaultDailyRecord, defaultData, defaultWeather} from './defaults.js';
 
-const dataPath = resolve(process.cwd(), 'data', 'kinoko.json');
+const dataPath = getKinokoDataPath();
 
 export function getDataPath(): string {
   return dataPath;

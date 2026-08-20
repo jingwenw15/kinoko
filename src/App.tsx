@@ -6,6 +6,7 @@ import {FocusPanel} from './components/FocusPanel.js';
 import {WeatherPanel} from './components/WeatherPanel.js';
 import {NotePanel} from './components/NotePanel.js';
 import {Footer} from './components/Footer.js';
+import {HelpOverlay} from './components/HelpOverlay.js';
 import {Layout} from './components/Layout.js';
 import {useClock} from './hooks/useClock.js';
 import {useTerminalSize} from './hooks/useTerminalSize.js';
@@ -13,6 +14,7 @@ import {
   addTask,
   deleteTask,
   editTask,
+  getDataPath,
   getToday,
   loadData,
   pauseFocus,
@@ -25,14 +27,16 @@ import {
   updateToday
 } from './state/store.js';
 import type {KinokoData} from './state/schema.js';
-import {colors} from './theme/colors.js';
+import {colors, themes, type ThemeName} from './theme/colors.js';
+import {mascots} from './theme/ascii.js';
 import {
   hasWeatherLocation,
   loadConfig,
   saveConfig,
   setBreakMinutes,
   setFocusMinutes,
-  setGeocodedWeatherLocation
+  setGeocodedWeatherLocation,
+  setTheme
 } from './config.js';
 import {
   fetchOpenMeteoWeather,
@@ -59,7 +63,10 @@ export function App({dataPath}: AppProps) {
   const [entryMode, setEntryMode] = useState<'add' | 'edit' | 'location' | 'focusMinutes' | 'breakMinutes' | null>(null);
   const [entryText, setEntryText] = useState('');
   const [focusConfigStatus, setFocusConfigStatus] = useState<string | null>(null);
+  const [showHelp, setShowHelp] = useState(false);
   const today = getToday(data, now);
+  const config = loadConfig();
+  const palette = themes[config.ui.theme];
 
   useEffect(() => {
     saveData(data, dataPath);
@@ -184,8 +191,25 @@ export function App({dataPath}: AppProps) {
       return;
     }
 
+    if (showHelp) {
+      if (input === '?' || key.escape) {
+        setShowHelp(false);
+      }
+      return;
+    }
+
     if (input === 'q' || key.escape) {
       exit();
+      return;
+    }
+
+    if (input === '?') {
+      setShowHelp(true);
+      return;
+    }
+
+    if (input === 't') {
+      saveConfig(setTheme(loadConfig(), nextThemeName(loadConfig().ui.theme)));
       return;
     }
 
@@ -292,8 +316,9 @@ export function App({dataPath}: AppProps) {
 
   return (
     <Box flexDirection="column" paddingX={1}>
-      <Box borderStyle="round" borderColor={colors.shell} flexDirection="column" paddingX={1}>
+      <Box borderStyle="round" borderColor={palette.shell} flexDirection="column" paddingX={1}>
         <Header now={now} weather={data.weather} />
+        {showHelp && <HelpOverlay palette={palette} />}
         <Layout compact={compact}>
           <TasksPanel
             tasks={today.tasks}
@@ -304,7 +329,7 @@ export function App({dataPath}: AppProps) {
             record={today}
             now={now}
             active={panels[activePanel] === 'focus'}
-            config={loadConfig().focus}
+            config={config.focus}
             status={focusConfigStatus}
           />
           <WeatherPanel data={data} active={panels[activePanel] === 'weather'} status={weatherStatus} />
@@ -317,9 +342,9 @@ export function App({dataPath}: AppProps) {
             </Text>
           </Box>
         )}
-        <Footer />
+        <Footer palette={palette} mascotArt={selectMascot(today, data)} />
       </Box>
-      <Text color={colors.muted}>data: {dataPath ?? 'data/kinoko.json'}</Text>
+      <Text color={colors.muted}>data: {dataPath ?? getDataPath()}</Text>
     </Box>
   );
 }
@@ -330,4 +355,18 @@ function formatEntryPrompt(entryMode: 'add' | 'edit' | 'location' | 'focusMinute
   if (entryMode === 'focusMinutes') return 'focus minutes';
   if (entryMode === 'breakMinutes') return 'break minutes';
   return 'location name';
+}
+
+function nextThemeName(theme: ThemeName): ThemeName {
+  if (theme === 'cozy') return 'pixel';
+  if (theme === 'pixel') return 'zen';
+  return 'cozy';
+}
+
+function selectMascot(today: ReturnType<typeof getToday>, data: KinokoData): string {
+  if (today.focus.status === 'focus') return mascots.focus;
+  if (today.focus.status === 'break') return mascots.break;
+  if (data.weather.label.includes('rain')) return mascots.rainy;
+  if (today.tasks.length > 0 && today.tasks.every(task => task.done)) return mascots.done;
+  return mascots.idle;
 }

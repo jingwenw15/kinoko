@@ -28,6 +28,7 @@ import {
   setBreakMinutes,
   setFocusMinutes,
   setGeocodedWeatherLocation,
+  setTheme,
   setWeatherLocation
 } from './config.js';
 import {fetchOpenMeteoWeather, geocodeLocation, markWeatherStale} from './weather/openMeteo.js';
@@ -223,15 +224,26 @@ function runConfigCommand(args: string[]): void {
       console.log(`break minutes set to ${minutes}`);
       break;
     }
-    case 'show':
-    case undefined:
+    case 'focus':
       console.log(JSON.stringify(config.focus, null, 2));
       break;
+    case 'show':
+    case undefined:
+      console.log(JSON.stringify(config, null, 2));
+      break;
+    case 'theme': {
+      const theme = parseTheme(value);
+      saveConfig(setTheme(config, theme));
+      console.log(`theme set to ${theme}`);
+      break;
+    }
     default:
       console.log(`config commands:
   kinoko config show
+  kinoko config focus
   kinoko config focus-minutes <1-180>
-  kinoko config break-minutes <1-180>`);
+  kinoko config break-minutes <1-180>
+  kinoko config theme <cozy|pixel|zen>`);
   }
 }
 
@@ -268,6 +280,7 @@ usage:
   kinoko focus status             show focus status
   kinoko config focus-minutes <n> set default focus length
   kinoko config break-minutes <n> set default break length
+  kinoko config theme <name>      set theme: cozy, pixel, zen
 `);
 }
 
@@ -293,4 +306,14 @@ function parseDuration(value: string | undefined, message: string): number {
   }
 
   return minutes;
+}
+
+function parseTheme(value: string | undefined): 'cozy' | 'pixel' | 'zen' {
+  requireArg(value, 'usage: kinoko config theme <cozy|pixel|zen>');
+  if (value !== 'cozy' && value !== 'pixel' && value !== 'zen') {
+    console.error('usage: kinoko config theme <cozy|pixel|zen>');
+    process.exit(1);
+  }
+
+  return value;
 }

@@ -1,10 +1,11 @@
 import {existsSync, mkdirSync, readFileSync, writeFileSync} from 'node:fs';
-import {dirname, resolve} from 'node:path';
+import {dirname} from 'node:path';
+import {getKinokoConfigPath} from './paths.js';
 import {defaultConfig} from './state/defaults.js';
 import {KinokoConfigSchema, type KinokoConfig} from './state/schema.js';
 import type {GeocodedLocation} from './weather/openMeteo.js';
 
-const configPath = resolve(process.cwd(), 'data', 'config.json');
+const configPath = getKinokoConfigPath();
 
 export function getConfigPath(): string {
   return configPath;
@@ -75,17 +76,35 @@ export function setBreakMinutes(config: KinokoConfig, breakMinutes: number): Kin
   return setFocusDurations(config, config.focus.focusMinutes, breakMinutes);
 }
 
+export function setTheme(config: KinokoConfig, theme: KinokoConfig['ui']['theme']): KinokoConfig {
+  return {
+    ...config,
+    ui: {
+      theme
+    }
+  };
+}
+
 function parseConfig(raw: unknown): KinokoConfig {
   const parsed = KinokoConfigSchema.safeParse(raw);
   if (parsed.success) {
     return parsed.data;
   }
 
-  const legacy = KinokoConfigSchema.omit({focus: true}).safeParse(raw);
+  const focusOnlyLegacy = KinokoConfigSchema.omit({ui: true}).safeParse(raw);
+  if (focusOnlyLegacy.success) {
+    return {
+      ...focusOnlyLegacy.data,
+      ui: defaultConfig.ui
+    };
+  }
+
+  const legacy = KinokoConfigSchema.omit({focus: true, ui: true}).safeParse(raw);
   if (legacy.success) {
     return {
       ...legacy.data,
-      focus: defaultConfig.focus
+      focus: defaultConfig.focus,
+      ui: defaultConfig.ui
     };
   }
 

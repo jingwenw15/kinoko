@@ -45,5 +45,8 @@ export const defaultConfig: KinokoConfig = {
   focus: {
     focusMinutes: 25,
     breakMinutes: 5
+  },
+  ui: {
+    theme: 'cozy'
   }
 };
